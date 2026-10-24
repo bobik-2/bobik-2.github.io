@@ -8,8 +8,23 @@ const salt1 = new Uint8Array(32).fill(7);
 const salt2 = new Uint8Array(32).fill(9);
 const prfOut = new Uint8Array(32).fill(5);
 
-function fakeCred(rawId, prf) {
-  return { rawId: rawId.buffer, getClientExtensionResults: () => ({ prf }) };
+const AAGUID = "ee882879-721c-4913-9775-3dfcce97072a";
+
+// authenticatorData z attestedCredentialData: rpIdHash(32) flags(1) signCount(4) aaguid(16) ...
+function authData(aaguidHex) {
+  const d = new Uint8Array(37 + 16 + 2);
+  d[32] = 0x41; // UP + AT
+  d.set(Uint8Array.from(aaguidHex.replaceAll("-", "").match(/../g), (h) => parseInt(h, 16)), 37);
+  return d.buffer;
+}
+
+function fakeCred(rawId, prf, { attachment = "cross-platform", transports = ["usb"], aaguid = AAGUID } = {}) {
+  return {
+    rawId: rawId.buffer,
+    authenticatorAttachment: attachment,
+    response: { getTransports: () => transports, getAuthenticatorData: () => authData(aaguid) },
+    getClientExtensionResults: () => ({ prf }),
+  };
 }
 
 describe("registerCredential", () => {
@@ -18,12 +33,28 @@ describe("registerCredential", () => {
   it("zwraca id, prf przy rejestracji i przekazuje sól + excludeCredentials", async () => {
     const credentials = { create: vi.fn(async () => fakeCred(id1, { enabled: true, results: { first: prfOut.buffer } })) };
     const res = await registerCredential(credentials, args);
-    expect(res).toEqual({ credentialId: id1, prfEnabled: true, prfFirst: prfOut });
+    expect(res).toEqual({ credentialId: id1, prfEnabled: true, prfFirst: prfOut, aaguid: AAGUID, transports: ["usb"] });
     const pk = credentials.create.mock.calls[0][0].publicKey;
+    expect(pk.authenticatorSelection.authenticatorAttachment).toBe("cross-platform");
+    expect(pk.hints).toEqual(["security-key"]);
     expect(pk.rp.id).toBe("bobik-2.github.io");
     expect(pk.extensions.prf.eval.first).toBe(salt1);
     expect(pk.excludeCredentials).toEqual([{ type: "public-key", id: id2 }]);
     expect(pk.pubKeyCredParams).toContainEqual({ type: "public-key", alg: -7 });
+  });
+
+  it.each([
+    ["platform (Touch ID / pęk kluczy iCloud)", { attachment: "platform", transports: ["internal"] }],
+    ["telefon przez QR (hybrid)", { attachment: "cross-platform", transports: ["hybrid", "internal"] }],
+    ["transport internal", { attachment: null, transports: ["internal"] }],
+  ])("odrzuca klucz, który nie jest sprzętowym: %s", async (_label, opts) => {
+    const credentials = { create: vi.fn(async () => fakeCred(id1, { enabled: true }, opts)) };
+    await expect(registerCredential(credentials, args)).rejects.toMatchObject({ code: "not_security_key" });
+  });
+
+  it("AAGUID wyzerowany przez przeglądarkę -> null", async () => {
+    const credentials = { create: vi.fn(async () => fakeCred(id1, { enabled: true }, { aaguid: "00000000-0000-0000-0000-000000000000" })) };
+    expect(await registerCredential(credentials, args)).toMatchObject({ aaguid: null });
   });
 
   it("YubiKey bez hmac-secret-mc: enabled bez wyniku -> prfFirst null", async () => {
@@ -55,6 +86,7 @@ describe("evaluatePrf", () => {
     const res = await evaluatePrf(credentials, { rpId: "bobik-2.github.io", keys });
     expect(res).toEqual({ index: 1, prfFirst: prfOut });
     const pk = credentials.get.mock.calls[0][0].publicKey;
+    expect(pk.hints).toEqual(["security-key"]);
     expect(pk.allowCredentials).toEqual([{ type: "public-key", id: id1 }, { type: "public-key", id: id2 }]);
     expect(pk.extensions.prf.evalByCredential).toEqual({ [toB64url(id1)]: { first: salt1 }, [toB64url(id2)]: { first: salt2 } });
   });
@@ -62,6 +94,11 @@ describe("evaluatePrf", () => {
   it("odpowiedź klucza spoza listy -> unknown_credential", async () => {
     const credentials = { get: vi.fn(async () => fakeCred(new Uint8Array([3]), { results: { first: prfOut.buffer } })) };
     await expect(evaluatePrf(credentials, { rpId: "x", keys })).rejects.toMatchObject({ code: "unknown_credential" });
+  });
+
+  it("odpowiedź authenticatora platformowego -> not_security_key", async () => {
+    const credentials = { get: vi.fn(async () => fakeCred(id1, { results: { first: prfOut.buffer } }, { attachment: "platform" })) };
+    await expect(evaluatePrf(credentials, { rpId: "x", keys })).rejects.toMatchObject({ code: "not_security_key" });
   });
 
   it("brak wyniku PRF -> no_prf", async () => {

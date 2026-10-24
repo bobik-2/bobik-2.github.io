@@ -21,6 +21,26 @@ function mapDomError(e) {
 const asBytes = (buf) => (buf ? new Uint8Array(buf) : null);
 const descriptor = (id) => ({ type: "public-key", id });
 
+// D5: tylko klucze sprzętowe. Passkeye platformowe (Touch ID / pęk kluczy
+// iCloud, Windows Hello) i telefon przez QR (hybrid) synchronizują się
+// albo żyją poza kontrolą kliniki — odrzucamy je.
+const NOT_HARDWARE_TRANSPORTS = ["internal", "hybrid"];
+
+function assertSecurityKey(cred, transports) {
+  if (cred.authenticatorAttachment === "platform") throw new WebAuthnError("not_security_key");
+  if (transports.some((t) => NOT_HARDWARE_TRANSPORTS.includes(t))) throw new WebAuthnError("not_security_key");
+}
+
+// AAGUID z attestedCredentialData (authenticatorData, offset 37). Zera =
+// przeglądarka go ukryła (attestation "none") -> null.
+function aaguidOf(authData) {
+  const d = new Uint8Array(authData);
+  if (d.length < 53 || !(d[32] & 0x40)) return null;
+  const hex = Array.from(d.subarray(37, 53), (b) => b.toString(16).padStart(2, "0")).join("");
+  if (/^0+$/.test(hex)) return null;
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 // Rejestracja klucza nierezydentnego. prfFirst bywa null: YubiKey bez
 // hmac-secret-mc zwraca przy create() tylko `enabled` — wtedy wywołujący
 // robi evaluatePrf (drugie dotknięcie).
@@ -34,16 +54,25 @@ export async function registerCredential(credentials, { rpId, rpName, userId, us
         challenge: crypto.getRandomValues(new Uint8Array(32)),
         pubKeyCredParams: [{ type: "public-key", alg: -7 }],
         excludeCredentials: excludeIds.map(descriptor),
-        authenticatorSelection: { residentKey: "discouraged", userVerification: "discouraged" },
+        authenticatorSelection: { authenticatorAttachment: "cross-platform", residentKey: "discouraged", userVerification: "discouraged" },
+        hints: ["security-key"],
         extensions: { prf: { eval: { first: salt } } },
       },
     });
   } catch (e) {
     throw mapDomError(e);
   }
+  const transports = cred.response.getTransports?.() ?? [];
+  assertSecurityKey(cred, transports);
   const prf = cred.getClientExtensionResults().prf;
   if (!prf?.enabled) throw new WebAuthnError("no_prf");
-  return { credentialId: new Uint8Array(cred.rawId), prfEnabled: true, prfFirst: asBytes(prf.results?.first) };
+  return {
+    credentialId: new Uint8Array(cred.rawId),
+    prfEnabled: true,
+    prfFirst: asBytes(prf.results?.first),
+    aaguid: cred.response.getAuthenticatorData ? aaguidOf(cred.response.getAuthenticatorData()) : null,
+    transports,
+  };
 }
 
 // Jedno get() dla wszystkich kluczy (evalByCredential, każdy z własną solą).
@@ -58,6 +87,7 @@ export async function evaluatePrf(credentials, { rpId, keys }) {
         rpId,
         allowCredentials: keys.map((k) => descriptor(k.credentialId)),
         userVerification: "discouraged",
+        hints: ["security-key"],
         extensions: {
           prf: { evalByCredential: Object.fromEntries(keys.map((k) => [toB64url(k.credentialId), { first: k.salt }])) },
         },
@@ -66,6 +96,7 @@ export async function evaluatePrf(credentials, { rpId, keys }) {
   } catch (e) {
     throw mapDomError(e);
   }
+  assertSecurityKey(assertion, []);
   const rawId = toB64url(assertion.rawId);
   const index = keys.findIndex((k) => toB64url(k.credentialId) === rawId);
   if (index < 0) throw new WebAuthnError("unknown_credential");

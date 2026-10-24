@@ -10,6 +10,7 @@ import { fetchRevoked, isRevoked } from "./revocation.js";
 import { evaluatePrf, prfSupport, registerCredential } from "./webauthn.js";
 
 const MESSAGES = {
+  not_security_key: "to nie jest klucz sprzętowy (Touch ID / pęk kluczy iCloud / Windows Hello / telefon) — sejf przyjmuje tylko YubiKey",
   not_allowed: "anulowano albo minął czas (albo ten klucz nie jest zarejestrowany na tej domenie)",
   already_registered: "ten klucz jest już zarejestrowany na tej liście",
   no_prf: "klucz albo przeglądarka nie obsługuje PRF (hmac-secret)",
@@ -84,6 +85,7 @@ function renderKeys() {
       idCell,
       cell(new Date(k.createdAt).toLocaleString("pl-PL")),
       cell(k.prfAtCreate ? "tak" : "nie (drugie dotknięcie)"),
+      cell(`${(k.transports ?? []).join(", ") || "?"} / ${k.aaguid ?? "AAGUID ukryty"}`, "mono"),
       cell(k.secretFingerprint, "mono"),
       cell(st?.text ?? "—", st?.cls === "hit" ? "ok" : st?.cls === "bad" ? "bad-text" : undefined),
       actions,
@@ -147,6 +149,8 @@ async function addKey(name) {
     createdAt: new Date().toISOString(),
     prfAtCreate: reg.prfFirst !== null,
     secretFingerprint: await secretFingerprint(prf),
+    aaguid: reg.aaguid,
+    transports: reg.transports,
   };
   store.add(entry);
   status.set(entry.credentialId, { cls: "hit", text: "dodany" });
@@ -164,7 +168,7 @@ async function check(keys) {
     log(`odpowiedział „${k.name}", sekret zgodny`, "ok");
   } else {
     status.set(k.credentialId, { cls: "bad", text: "SEKRET NIEZGODNY" });
-    log(`odpowiedział „${k.name}", ale sekret NIEZGODNY (${fp})`, "bad-text");
+    log(`odpowiedział „${k.name}", ale sekret NIEZGODNY (${fp}) — ta przeglądarka zwraca niestabilny PRF (np. WebKit bug 311099); sejf nie będzie w niej działał`, "bad-text");
   }
 }
 

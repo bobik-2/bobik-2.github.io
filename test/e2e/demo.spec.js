@@ -34,7 +34,7 @@ test.describe("demo — WebAuthn (wirtualny authenticator)", () => {
 
     const rows = page.locator("#keys tbody tr");
     await expect(rows.nth(0)).toContainText("localhost");
-    await expect(rows.nth(1).locator("td").nth(5)).toHaveText(/^([A-Z2-7]{4} ){7}[A-Z2-7]{4}$/);
+    await expect(rows.nth(1).locator("td").nth(6)).toHaveText(/^([A-Z2-7]{4} ){7}[A-Z2-7]{4}$/);
 
     // włożony jest tylko „czerwony"
     await page.click("#check-all");
@@ -51,6 +51,22 @@ test.describe("demo — WebAuthn (wirtualny authenticator)", () => {
     await expect(page.locator("#keys tbody tr")).toHaveCount(1);
     await expect(page.locator("#keys tbody tr")).toContainText("czerwony");
   });
+});
+
+test("demo nie proponuje authenticatora platformowego (Touch ID / Windows Hello)", async ({ page, context, browserName }) => {
+  test.skip(browserName !== "chromium", "wirtualny authenticator tylko przez CDP (Chromium)");
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("WebAuthn.enable", { enableUI: false });
+  await cdp.send("WebAuthn.addVirtualAuthenticator", { options: { ...OPTS, transport: "internal" } });
+  await page.goto(DEMO);
+  await page.fill("#key-name", "touch id");
+  await page.click("#add");
+  // authenticatorAttachment: "cross-platform" -> przeglądarka pomija wbudowany
+  // authenticator i czeka na klucz sprzętowy; nic nie zostaje zarejestrowane.
+  // (Odrzucenie po stronie JS, gdyby przeglądarka go jednak użyła — testy jednostkowe.)
+  await page.waitForTimeout(3000);
+  await expect(page.locator("#keys tbody tr")).toHaveCount(0);
+  await expect(page.locator("#log")).not.toContainText("dodano");
 });
 
 test("demo ładuje się i pokazuje stan przeglądarki", async ({ page, browserName }) => {
