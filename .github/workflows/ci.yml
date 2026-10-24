@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Vitest
+        run: npx vitest run
+      - name: Przeglądarki Playwright
+        run: npx playwright install --with-deps chromium firefox
+      - name: Playwright
+        run: npx playwright test
+      - name: Odtwarzalność opublikowanych plików
+        run: |
+          node scripts/build.mjs /tmp/build-a
+          node scripts/build.mjs /tmp/build-b
+          diff /tmp/build-a/SHA256SUMS /tmp/build-b/SHA256SUMS
+          cat /tmp/build-a/SHA256SUMS
