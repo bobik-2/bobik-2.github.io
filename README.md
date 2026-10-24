@@ -25,9 +25,15 @@ npx vitest run
 npx playwright test      # panel: 127.0.0.1:8000, sejf: localhost:8001
 ```
 
-## Hosting — uwaga
+## Hosting
 
-Sejf **nie może** być serwowany z `iplweb.github.io/…`: wszystkie strony
-Pages organizacji dzielą jeden origin (i RP ID WebAuthn). Potrzebna własna
-domena tego repo albo osobna organizacja do publikacji — przed pierwszą
-rejestracją kluczy (RP ID jest na zawsze).
+Organizacja GitHub **`bobik-2`** (osobna od `iplweb`), repo
+`bobik-2.github.io` → origin sejfu `https://bobik-2.github.io`, RP ID
+WebAuthn `bobik-2.github.io`. W tej organizacji **nie może** być żadnych
+innych stron Pages — dzieliłyby origin z sejfem.
+
+Przed włączeniem Pages / pierwszą rejestracją kluczy (RP ID jest na zawsze):
+
+- wymuszone 2FA w organizacji (klucze sprzętowe), minimum właścicieli,
+- chroniona gałąź `main` z wymaganym zielonym CI i podpisanymi commitami,
+- Pages na planie Free wymaga repo publicznego.

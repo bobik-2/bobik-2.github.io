@@ -2,6 +2,9 @@
 
 export const VERSION = "0.1.0";
 
+// Origin sejfu: https://bobik-2.github.io (organizacja GitHub bobik-2),
+// RP ID WebAuthn = "bobik-2.github.io".
+
 // Originy panelu bobik-2, którym sejf odpowiada na postMessage.
 // OTWARTE: domeny produkcyjne bobik-2 — dopisać przed pierwszym releasem.
 export const ALLOWED_PARENT_ORIGINS = Object.freeze([
