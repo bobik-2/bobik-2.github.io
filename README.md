@@ -16,6 +16,11 @@ Kontekst i decyzje: spec A i handoff B w repo bobik-2
 - `public/` — pliki w korzeniu originu (`revoked.json`).
 - `scripts/build.mjs` — składa `dist/` + `SHA256SUMS` (bez bundlera).
 - `test/unit/` — Vitest; `test/e2e/` — Playwright z atrapą panelu.
+- `src/demo.html` — demo i diagnostyka kluczy sprzętowych
+  (https://bobik-2.github.io/v0.1.0/demo.html): rejestracja, sprawdzanie,
+  lista kluczy (tylko w tej przeglądarce). Działa na originie sejfu, więc
+  jest częścią sejfu — przegląd kodu jak dla sejfu.
+- Publikacja: job `deploy` w CI, tylko z `main`, po zielonym `test`.
 
 ## Testy
 

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sejf kluczy — demo</title>
+<link rel="stylesheet" href="vault.css">
+<link rel="stylesheet" href="demo.css">
+<script type="module" src="demo.js"></script>
+</head>
+<body>
+<main class="demo">
+  <h1>Sejf kluczy bobik — demo i diagnostyka</h1>
+  <p class="note">Strona testowa sejfu. Klucze rejestrowane tutaj są przypisane do domeny
+    <strong id="rp-id"></strong>, a ich lista żyje wyłącznie w tej przeglądarce.
+    Strona nie odszyfrowuje żadnych danych.</p>
+
+  <section aria-labelledby="h-browser">
+    <h2 id="h-browser">Przeglądarka</h2>
+    <dl id="browser"></dl>
+  </section>
+
+  <section aria-labelledby="h-keys">
+    <h2 id="h-keys">Klucze sprzętowe</h2>
+    <form id="add-form" class="row">
+      <label for="key-name">Nazwa klucza</label>
+      <input id="key-name" name="name" maxlength="40" placeholder="np. YubiKey niebieski" required>
+      <button id="add" type="submit">Dodaj klucz</button>
+      <button id="check-all" type="button">Sprawdź (dotknij dowolny klucz)</button>
+    </form>
+    <p id="storage-warning" class="warn" hidden>Przeglądarka nie pozwala zapisać listy — zniknie po odświeżeniu strony.</p>
+    <table id="keys">
+      <thead><tr><th>Nazwa</th><th>Domena (RP ID)</th><th>ID klucza</th><th>Dodano</th><th>PRF przy rejestracji</th><th>Odcisk sekretu</th><th>Stan</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p id="no-keys" class="note">Brak kluczy na tej liście.</p>
+  </section>
+
+  <section aria-labelledby="h-manage">
+    <h2 id="h-manage">PIN i kasowanie kluczy z urządzenia</h2>
+    <p>Strona WWW nie może przejrzeć zawartości YubiKeya, zmienić PIN-u ani skasować z niego
+      klucza — przeglądarka na to nie pozwala. „Zapomnij" usuwa klucz tylko z listy powyżej.
+      Klucze rejestrowane przez sejf są nierezydentne, więc nie zajmują miejsca na YubiKeyu.
+      Zarządzanie urządzeniem:</p>
+    <ul>
+      <li>aplikacja <strong>Yubico Authenticator</strong> (PIN FIDO2, lista i kasowanie kluczy rezydentnych, reset),</li>
+      <li>Chrome / Edge: <code>chrome://settings/securityKeys</code> (wklej w pasek adresu),</li>
+      <li>Windows: Ustawienia → Konta → Opcje logowania → Klucz zabezpieczeń.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="h-log">
+    <h2 id="h-log">Dziennik</h2>
+    <ol id="log" reversed></ol>
+  </section>
+</main>
+</body>
+</html>

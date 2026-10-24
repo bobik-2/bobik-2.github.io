@@ -1,0 +1,18 @@
+.demo { max-width: 1100px; margin: 0 auto; line-height: 1.45; }
+.demo h1 { font-size: 1.4rem; }
+.demo h2 { font-size: 1.1rem; margin-top: 1.6rem; }
+.note { opacity: 0.8; }
+.warn { color: #b3261e; font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; }
+dt { font-weight: 600; }
+dd { margin: 0; overflow-wrap: anywhere; }
+table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 0.9rem; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent); vertical-align: top; }
+td.mono, .mono { font-family: ui-monospace, monospace; }
+tr.hit { background: color-mix(in srgb, #2e7d32 18%, transparent); }
+tr.bad { background: color-mix(in srgb, #b3261e 18%, transparent); }
+.ok { color: #2e7d32; font-weight: 600; }
+.bad-text { color: #b3261e; font-weight: 600; }
+#log { font-family: ui-monospace, monospace; font-size: 0.85rem; }
+button { padding: 4px 10px; }
