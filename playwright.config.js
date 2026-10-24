@@ -14,6 +14,8 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    // WebKit tylko do sprawdzenia blokady Safari (D13).
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: [
     {
