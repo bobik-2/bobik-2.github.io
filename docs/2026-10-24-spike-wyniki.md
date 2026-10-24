@@ -43,6 +43,17 @@ Panel `127.0.0.1:8010` (inny site), iframe sejfu `localhost:8011`:
   is not enabled in this document…` — test negatywny potwierdza, że iframe
   jest naprawdę cross-origin i polityka działa.
 
+### 1b. Dwa YubiKeye w jednym `get()` (`evalByCredential`) — ✅ Chromium
+
+Dwa wirtualne authenticatory, każdy z własną solą; włożony tylko drugi.
+`get()` z `allowCredentials: [id1, id2]` i
+`prf.evalByCredential: {b64url(id1): {first: sól1}, b64url(id2): {first: sól2}}`
+→ odpowiada włożony klucz, `rawId` wskazuje który, a wynik PRF jest
+identyczny z pojedynczym `eval` z jego solą. `unlock` może więc dostać
+listę wrapów i zrobić **jedno** wywołanie (lekarz dotyka tego klucza, który
+ma), a sejf wybiera `wrapped_private` po `rawId`. `get()` tylko dla
+wyjętego klucza → `NotAllowedError`.
+
 ### 2. PRF przy `create()` — ✅ na wirtualnym, ❓ na YubiKeyu
 
 - Wirtualny authenticator (ctap2_1, `hasPrf`) zwraca przy `create()`
