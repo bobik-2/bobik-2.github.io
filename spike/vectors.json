@@ -1,0 +1,12 @@
+{
+  "clinic_private_pkcs8": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgrolUZA72RMQIQwL1xlRa0m04M1-ZozLuHF6myWfHdGehRANCAAQsDbQPD7CJ-egs5IyaeZnsCs2mGuMmw3hu2Q23I0M5tILv5_GLTj_0O0l9BdLzy3PtA0Q_ss7N0wK_32cxCZfX",
+  "clinic_public_spki": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAELA20Dw-wifnoLOSMmnmZ7ArNphrjJsN4btkNtyNDObSC7-fxi04_9DtJfQXS88tz7QNEP7LOzdMCv99nMQmX1w",
+  "clinic_id": 7,
+  "interview_id": 42,
+  "field": "interviews.Interview.age",
+  "dek": "YdhcyfHsFoqYyBGAQF-jjdi0kZRTUUFscjgfP9eI16Q",
+  "clinic_wrap": "BCdBe8ybTHkgf54P_U6ht5YOkIWZIYuimZJqJNahlICQ8oasmXbZh1GfIRdUansM-Ol8GAitw5dX4i9ngIji5lG6blIk1Cij_nFR-mkUABlAVQvvcAEfHYBKT8xTWdsDHYfhmuVSlBD38J9lgZdyTaE",
+  "sealed": "AWZmZmZ3d4iImZmqqqqqqqpTCLalF61QHlYrISu_IVbZCsUoos8XOfyk1_sf_ddS-MR9Ag-qMNPUHEqb1E9NXZS1Kjsb0Xnal-iW",
+  "stc": "AhEREREiIjMzRERVVVVVVVUEYVPS-ElKOPrx4AwQwefsH8DH43aK_ADVcXTNW-k0k696kpoexRkROoGViFHQoYR2I0hKeq0TUS-wK6JZ8W399Sn_3yQ7Y_kCSGCeWEzirk1YDBpDW931rx2GS0PwijNbVNfnwGPl4RC7clS-FqE",
+  "plaintext": "{\"lata\":54,\"uwagi\":\"żółć\"}"
+}
