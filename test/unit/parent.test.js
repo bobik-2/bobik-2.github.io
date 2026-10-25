@@ -44,33 +44,28 @@ describe("filtr rodzica (rozstrzygnięcie 9, P6, V-3, Review Focus 4)", () => {
     expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL])).toBe(true);
   });
 
-  // Fail-closed: „null” w ancestorOrigins to przodek, którego originu nie znamy (zamaskowany np. przez
-  // referrerpolicy obcej strony osadzającej panel). Zad. 9 zmierzyło, że iframe B2 z no-referrer
-  // NIE maskuje rodzica w Chromium, więc odrzucenie nie blokuje prawidłowego osadzenia.
-  it('ancestorOrigins[0] === "null" -> odrzucone (fail-closed)', () => {
+  // Sejf musi siedzieć bezpośrednio w dokumencie panelu najwyższego poziomu: dokładnie jeden przodek.
+  // Zmierzone (Playwright 1.64.1): obca strona osadzająca panel daje zawsze 2 wpisy, we wszystkich
+  // silnikach — Firefox maskuje je do "null" (["null","null"] z no-referrer, ["null", obcy] bez).
+  // [0] === "null" to maskowanie własnym iframe'em B2 (referrerpolicy="no-referrer") w Firefoksie;
+  // rodzica uwierzytelniają wtedy event.source i event.origin z listy.
+  it('ancestorOrigins ["null"] (Firefox, iframe B2 z no-referrer) -> przyjęte; obcy event.origin dalej odrzucony', () => {
     const w = win({ ancestors: ["null"] });
-    expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL])).toBe(false);
+    expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL])).toBe(true);
+    expect(acceptMessage({ source: w.parent, origin: "https://evil.example" }, w, [PANEL])).toBe(false);
   });
 
-  // Przegląd 9–10, L-3: dozwolony panel osadzony w obcej stronie ([1] obcy) nie przechodzi.
-  it("dalszy przodek spoza listy -> odrzucone (Chromium)", () => {
-    const w = win({ ancestors: [PANEL, "https://evil.example"] });
-    expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL])).toBe(false);
-  });
-
-  it("wszyscy przodkowie z listy -> przyjęte", () => {
-    const w = win({ ancestors: [PANEL, DEV] });
-    expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL, DEV])).toBe(true);
-  });
-
-  it('"null" w dalszym przodku (obca strona osadza panel z no-referrer) -> odrzucone', () => {
-    const masked = win({ ancestors: [PANEL, "null"] });
-    expect(acceptMessage({ source: masked.parent, origin: PANEL }, masked, [PANEL])).toBe(false);
-  });
-
-  it("zamaskowany rodzic, obcy dalszy przodek -> odrzucone", () => {
-    const w = win({ ancestors: ["null", "https://evil.example"] });
-    expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL])).toBe(false);
+  // Przegląd 9–10, L-3 i automatyczny przegląd bezpieczeństwa: panel osadzony w innej stronie nie przechodzi.
+  it.each([
+    ["obcy dalszy przodek (Chromium/WebKit)", [PANEL, "https://evil.example"]],
+    ["dalszy przodek z listy (zagnieżdżenie)", [PANEL, DEV]],
+    ['dalszy przodek "null"', [PANEL, "null"]],
+    ['oba zamaskowane (Firefox, obca strona z no-referrer)', ["null", "null"]],
+    ["zamaskowany rodzic, obcy dalszy przodek (Firefox)", ["null", "https://evil.example"]],
+    ["pusta lista", []],
+  ])("%s -> odrzucone", (_name, ancestors) => {
+    const w = win({ ancestors });
+    expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL, DEV])).toBe(false);
   });
 
   it("isTopLevel: window.parent === window", () => {

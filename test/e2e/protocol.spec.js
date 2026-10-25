@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { FOREIGN_PANEL, VAULT, VAULT_PATH } from "../../playwright.config.js";
+import { FOREIGN_PANEL, PANEL, VAULT, VAULT_PATH } from "../../playwright.config.js";
 import { VERSION } from "../../src/config.js";
 import { call, openPanel, vaultFrame, vaultFrameHandle } from "./helpers.js";
 
@@ -40,12 +40,44 @@ test("sejf otwarty jako strona najwyższego poziomu odmawia pracy (rozstrzygnię
   await expect(page.locator("#status")).toHaveText("Sejf działa wyłącznie osadzony w panelu bobik-2.");
 });
 
-test("Chromium: ancestorOrigins w iframe z referrerpolicy=no-referrer nie blokuje rodzica (P6)", async ({ page, browserName }) => {
-  test.skip(browserName !== "chromium", "location.ancestorOrigins istnieje tylko w Chromium");
+// Wartości zmierzone w Playwright 1.64.1 dla iframe'a z referrerpolicy="no-referrer" (jak w B2):
+// Chromium i WebKit nie maskują, Firefox maskuje do "null".
+const B2_ANCESTORS = { chromium: ["http://127.0.0.1:8000"], webkit: ["http://127.0.0.1:8000"], firefox: ["null"] };
+
+test("ancestorOrigins w iframe z referrerpolicy=no-referrer: zmierzona wartość, rodzic przyjęty (P6)", async ({ page, browserName }) => {
   await openPanel(page);
-  const ancestors = await vaultFrameHandle(page).evaluate(() => Array.from(location.ancestorOrigins));
-  console.log(`ancestorOrigins w ramce sejfu: ${JSON.stringify(ancestors)}`);
-  // Filtr odrzuca "null" (fail-closed), więc osadzenie jak w B2 musi dawać niezamaskowany origin.
-  expect(ancestors).toEqual(["http://127.0.0.1:8000"]);
+  const ancestors = await vaultFrameHandle(page).evaluate(() => Array.from(location.ancestorOrigins ?? []));
+  console.log(`ancestorOrigins w ramce sejfu (${browserName}): ${JSON.stringify(ancestors)}`);
+  expect(ancestors).toEqual(B2_ANCESTORS[browserName]);
   expect(await call(page, "hello")).toMatchObject({ ok: true });
 });
+
+// Automatyczny przegląd bezpieczeństwa: dozwolony panel osadzony w obcej stronie (z no-referrer i bez)
+// nie dostaje odpowiedzi — w Firefoksie także wtedy, gdy przodkowie są zamaskowani do "null".
+for (const policy of ["no-referrer", ""]) {
+  test(`dozwolony panel w ramce obcej strony (referrerpolicy=${policy || "domyślna"}) -> brak odpowiedzi`, async ({ page, browserName }) => {
+    await page.goto(`${FOREIGN_PANEL}/?${new URLSearchParams({ vault_path: VAULT_PATH })}`);
+    await page.evaluate(
+      ([url, rp]) =>
+        new Promise((resolve) => {
+          const f = document.createElement("iframe");
+          f.id = "wrapped-panel";
+          if (rp) f.referrerPolicy = rp;
+          f.width = 800;
+          f.height = 600;
+          f.addEventListener("load", resolve, { once: true });
+          f.src = url;
+          document.body.append(f);
+        }),
+      [`${PANEL}/?${new URLSearchParams({ vault_path: VAULT_PATH })}`, policy],
+    );
+    const panel = page.frames().find((f) => f.url().startsWith(PANEL));
+    await panel.evaluate(() => window.vaultReady);
+    // Kontrola pozytywna: sejf w zagnieżdżonej ramce działa (render() ustawił data-state).
+    await expect(page.frameLocator("#wrapped-panel").frameLocator("#vault").locator("body")).toHaveAttribute(
+      "data-state",
+      browserName === "webkit" ? "refusing" : "locked",
+    );
+    expect(await panel.evaluate(() => window.vaultCall("hello", {}, 2_000))).toEqual({ timeout: true });
+  });
+}

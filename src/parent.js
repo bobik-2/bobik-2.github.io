@@ -6,19 +6,17 @@ export const isTopLevel = (win) => win.parent === win;
 export function acceptMessage(event, win, allowedOrigins) {
   if (event.source !== win.parent) return false;
   if (!allowedOrigins.includes(event.origin)) return false;
-  // Chromium: ancestorOrigins[0] = origin rodzica, dalej kolejni przodkowie (Firefox: brak listy —
-  // rozstrzyga event.origin). Każdy przodek musi być z listy: dozwolony panel w obcej stronie nie
-  // przejdzie (L-3). Fail-closed dla "null": to przodek o nieznanym originie, np. obca strona, która
-  // osadza panel z referrerpolicy="no-referrer". Zad. 9 zmierzyło, że iframe B2 (no-referrer) NIE
-  // maskuje rodzica w Chromium (["http://127.0.0.1:8000"]), więc pierwotne założenie P6 o maskowaniu
-  // jest nieaktualne. ancestorOrigins to DOMStringList, nie tablica — pętla po indeksach.
+  // location.ancestorOrigins (Chromium, WebKit, Firefox): [0] = origin rodzica, dalej kolejni przodkowie.
+  // Sejf musi siedzieć bezpośrednio w dokumencie panelu najwyższego poziomu, więc lista ma dokładnie
+  // jeden wpis. Obca strona osadzająca dozwolony panel daje zawsze dwa — także w Firefoksie, który
+  // maskuje je do "null" (zmierzone: ["null","null"] z no-referrer, ["null", obcy] bez; przegląd 9–10
+  // L-3 i automatyczny przegląd bezpieczeństwa). Jedyny wpis może być "null": Firefox maskuje tak
+  // rodzica przy iframe'ie B2 z referrerpolicy="no-referrer"; rodzica uwierzytelniają wtedy
+  // event.source i event.origin z listy. Chromium i WebKit nie maskują — wtedy [0] === event.origin.
+  // Brak listy (starsze przeglądarki) — rozstrzyga event.origin.
   const ancestors = win.location.ancestorOrigins;
   if (!ancestors) return true;
-  for (let i = 0; i < ancestors.length; i++) {
-    const origin = ancestors[i];
-    if (origin === "null") return false;
-    if (i === 0 && origin !== event.origin) return false;
-    if (!allowedOrigins.includes(origin)) return false;
-  }
+  if (ancestors.length !== 1) return false;
+  if (ancestors[0] !== "null" && ancestors[0] !== event.origin) return false;
   return true;
 }

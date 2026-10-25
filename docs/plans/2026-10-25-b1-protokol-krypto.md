@@ -23,7 +23,7 @@
 | P3 | `busy` dotyczy operacji interaktywnych (`register`, `unlock`, `add_credential`, `create_clinic_key`, `grant_clinic_access`, `grant_lease`). Każda blokada (`lock`, przycisk „Zablokuj", bezczynność, wiek, limit) przerywa oczekujące potwierdzenie i podbija licznik epok: operacja, która zaczęła się przed blokadą, kończy się kodem `locked` i nie zapisuje kluczy | wynik policzony kluczami sprzed blokady nie może wrócić do panelu (Review Focus 1) |
 | P4 | Potwierdzenie w UI sejfu wygasa po 120 s (`LIMITS.INTERACTION_TIMEOUT_MS`) → `user_rejected` | panel ma limit 120 s; bez limitu po stronie sejfu porzucona operacja trzymałaby `busy` na zawsze |
 | P5 | `open`: element `sealed` **musi** mieć `interview_id`, a `blob` musi być tekstem base64url (`null` → `bad_args`); nadmiarowe klucze w obiektach są ignorowane; powtórzony `interview_id` w `interviews` → `bad_args`; `interviews` i `items` mogą być puste. `unlock` przyjmuje poświadczenia z `GET state/` wprost (nadmiarowe `id`, `label`, `created_at` są ignorowane) | B3 dokleja `interview_id` z `ciphertexts.interview` i pomija pola z `blob: null` (renderuje je jako puste). Notatka dla B3 w README |
-| P6 | Filtr rodzica: `event.source === window.parent`, `event.origin ∈ ALLOWED_PARENT_ORIGINS`, a jeśli `location.ancestorOrigins` istnieje i `[0]` nie jest `"null"`, to `[0] === event.origin`. Wartość `"null"` (maskowanie przez `referrerpolicy="no-referrer"` iframe'a z B2) nie odrzuca — wtedy rozstrzyga `event.origin`, jak w Firefoksie | B2 osadza iframe z `referrerpolicy="no-referrer"`; Chromium może wtedy maskować `ancestorOrigins`. Zadanie 9 ma test, który zapisuje faktyczną wartość. **Zmienione po przeglądzie 9–10:** zmierzono `["http://127.0.0.1:8000"]` (bez maskowania), więc filtr jest fail-closed — każdy przodek musi być z listy, a `"null"` na dowolnej pozycji odrzuca (inaczej obca strona osadzająca panel z `no-referrer` przechodziłaby filtr) |
+| P6 | Filtr rodzica: `event.source === window.parent`, `event.origin ∈ ALLOWED_PARENT_ORIGINS`, a jeśli `location.ancestorOrigins` istnieje i `[0]` nie jest `"null"`, to `[0] === event.origin`. Wartość `"null"` (maskowanie przez `referrerpolicy="no-referrer"` iframe'a z B2) nie odrzuca — wtedy rozstrzyga `event.origin`, jak w Firefoksie | B2 osadza iframe z `referrerpolicy="no-referrer"`; Chromium może wtedy maskować `ancestorOrigins`. Zadanie 9 ma test, który zapisuje faktyczną wartość. **Zmienione po przeglądzie 9–10:** `ancestorOrigins` musi mieć **dokładnie jeden** wpis (sejf bezpośrednio w dokumencie panelu najwyższego poziomu), równy `event.origin` albo `"null"`. Zmierzone (Playwright 1.64.1, iframe z `no-referrer`): Chromium i WebKit `["http://127.0.0.1:8000"]`, Firefox `["null"]`; obca strona osadzająca panel daje zawsze 2 wpisy (Firefox: `["null","null"]` z `no-referrer`, `["null", obcy]` bez), więc odrzucenie po długości zamyka lukę także tam, gdzie wpisy są zamaskowane |
 | P7 | Limit liczony pesymistycznie: każdy nowy `interview_id` z `interviews` liczy się przed odszyfrowaniem, także gdy jego `clinic_wrap` potem się nie otworzy; `grant_lease` liczy się dopiero po zatwierdzeniu przez lekarza (sprawdzany też przed pokazaniem pytania). Żądanie z > 10 nowymi wywiadami zawsze dostaje `rate_limited` — panel dzieli je na paczki ≤ 10 (notatka dla B3) | rozstrzygnięcie 1; brak „sondowania" bez kosztu |
 | P8 | `@hpke/core` 1.9.0 i `@hpke/common` 1.10.1 wendorowane skryptem `scripts/vendor-hpke.mjs` z `node_modules` (wersje przypięte w `package.json`), z przepisaniem `from "@hpke/common"` na ścieżki względne i `src/vendor/SHA256SUMS`. Test regeneruje katalog i porównuje sumy | spec „Ochrona sejfu"; spike: import map inline łamie `script-src 'self'` |
 | P9 | Konfiguracja dev/E2E: `scripts/serve.mjs --dev-config` (albo `--parent-origins=a,b`) podmienia przy serwowaniu blok między znacznikami `// <parent-origins>` … `// </parent-origins>` w `src/config.js`. Build nigdy jej nie widzi, bo składa `dist/` z `git archive` tagów | rozstrzygnięcie 11 |
@@ -5498,7 +5498,7 @@ npm version 0.2.0 --no-git-tag-version
 
 - [ ] **Krok 3: README**
 
-Zastąp cały `README.md` poniższym. Wartość `ancestorOrigins` z logu testu w zadaniu 9, krok 9, jest już wpisana (`["http://127.0.0.1:8000"]`; E2E jej teraz wymaga, bo filtr odrzuca `"null"`).
+Zastąp cały `README.md` poniższym. Wartości `ancestorOrigins` z logu testu w zadaniu 9 są już wpisane (Chromium/WebKit `["http://127.0.0.1:8000"]`, Firefox `["null"]`; E2E ich wymaga).
 
 ````markdown
 # bobik-sejf
@@ -5573,9 +5573,10 @@ node scripts/serve.mjs 8001 localhost /=public /v0.2.0=src --dev-config
 Podmiana nigdy nie trafia do `dist/`.
 
 Zaobserwowane w Chromium (iframe z `referrerpolicy="no-referrer"`, jak w B2):
-`location.ancestorOrigins` = `["http://127.0.0.1:8000"]` (bez maskowania). Filtr jest fail-closed:
-każdy przodek musi być na liście, a `"null"` na dowolnej pozycji odrzuca wiadomość. W Firefoksie
-(brak `ancestorOrigins`) rozstrzyga `event.origin`.
+`location.ancestorOrigins` = `["http://127.0.0.1:8000"]` w Chromium i WebKit, `["null"]` w Firefoksie
+(maskowanie przez `no-referrer`). Filtr wymaga dokładnie jednego przodka, równego `event.origin` albo
+`"null"`; dozwolony panel osadzony w obcej stronie daje dwa wpisy i nie dostaje odpowiedzi (test E2E
+we wszystkich trzech silnikach). Bez `ancestorOrigins` (starsze przeglądarki) rozstrzyga `event.origin`.
 
 ## Dla panelu (B3)
 
@@ -5585,10 +5586,11 @@ każdy przodek musi być na liście, a `"null"` na dowolnej pozycji odrzuca wiad
 - `unlock` przyjmuje `credentials` z `GET state/` wprost (nadmiarowe pola ignorowane).
 - Operacje interaktywne: limit 120 s po stronie panelu i sejfu; druga naraz → `busy`.
 - Zdarzenie `{v: 1, event: "locked", reason}` przychodzi przy każdej blokadzie.
-- Iframe sejfu nie może być osadzony tak, żeby maskował origin w `location.ancestorOrigins`
-  (sandbox bez `allow-same-origin`, strona panelu w ramce obcej strony, `data:`/`srcdoc`): każdy
-  przodek `"null"` albo spoza `ALLOWED_PARENT_ORIGINS` = brak odpowiedzi. `referrerpolicy="no-referrer"`
-  na samym iframe'ie (jak w B2) nie maskuje — zmierzone w Chromium.
+- Iframe sejfu musi siedzieć **bezpośrednio** w dokumencie panelu najwyższego poziomu: żadnych
+  zagnieżdżeń (panel w ramce, także własnej), sandboxu bez `allow-same-origin`, `data:`/`srcdoc`.
+  Więcej niż jeden przodek w `location.ancestorOrigins` = brak odpowiedzi. `referrerpolicy="no-referrer"`
+  na samym iframe'ie (jak w B2) jest dozwolone (Firefox maskuje wtedy rodzica do `"null"`, sejf to przyjmuje).
+  Nagłówek `frame-ancestors` stron panelu (B2) zostaje potrzebny dla przeglądarek bez `ancestorOrigins`.
 
 ## Wektory krzyżowe
 
