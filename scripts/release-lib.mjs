@@ -52,11 +52,24 @@ export function versionAt(ref) {
   return match[1];
 }
 
-export function extractSrc(ref, dest) {
+// Katalog `dir` (src, public) prosto z drzewa `ref`, bez pierwszego członu ścieżki.
+export function extractTree(ref, dir, dest) {
   mkdirSync(dest, { recursive: true });
-  const tar = execFileSync("git", ["archive", "--format=tar", ref, "src"], { maxBuffer: 1 << 28 });
+  const tar = execFileSync("git", ["archive", "--format=tar", ref, dir], { maxBuffer: 1 << 28 });
   execFileSync("tar", ["-x", "--strip-components=1", "-C", dest], { input: tar });
 }
+
+export const extractSrc = (ref, dest) => extractTree(ref, "src", dest);
+
+// Pliki katalogu `dir` w drzewie `ref`, ścieżki względne wobec `dir`.
+export function filesAt(ref, dir) {
+  return git(["ls-tree", "-r", "--name-only", ref, "--", `${dir}/`])
+    .split("\n")
+    .filter(Boolean)
+    .map((p) => p.slice(dir.length + 1));
+}
+
+export const showAt = (ref, path) => git(["show", `${ref}:${path}`]);
 
 export async function sumsAt(ref) {
   const tmp = mkdtempSync(join(tmpdir(), "sejf-src-"));

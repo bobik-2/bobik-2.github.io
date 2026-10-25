@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
+const INDEX_HTML = (links = "") => `<!doctype html>\n<title>t</title>\n<ul>${links}</ul>\n`;
 const SCRIPTS = ["build.mjs", "release-lib.mjs", "release-sums.mjs", "sums.mjs"];
 const run = (cwd, cmd, args) => execFileSync(cmd, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
@@ -27,6 +28,7 @@ function makeRepo() {
   writeFileSync(join(dir, ".gitignore"), ".key\n.key.pub\ndist/\n");
   writeFileSync(join(dir, "releases/allowed_signers"), `test@example.com namespaces="git" ${readFileSync(join(dir, ".key.pub"), "utf8").trim()}\n`);
   writeFileSync(join(dir, "public/revoked.json"), '{"revoked": []}\n');
+  writeFileSync(join(dir, "public/index.html"), INDEX_HTML());
   const repo = {
     dir,
     git,
@@ -182,5 +184,80 @@ describe("build z podpisanych tagów (rozstrzygnięcie 12, Review Focus 5)", { t
     writeFileSync(join(r.dir, "releases/0.9.0.sha256"), "x\n");
     r.commit();
     expect(r.buildError()).toContain("releases/0.9.0.sha256 bez tagu v0.9.0");
+  });
+
+  // Końcowy przegląd, I-2 / M-6: korzeń originu sejfu z gita (nie z dysku), dokładna allowlista,
+  // schemat revoked.json, index.html bez skryptów.
+  it("korzeń originu z git archive HEAD: plik nieśledzony nie trafia do dist/", () => {
+    const r = makeRepo();
+    r.release("1.0.0");
+    writeFileSync(join(r.dir, "public/evil.html"), "<script>alert(1)</script>\n");
+    writeFileSync(join(r.dir, "public/revoked.json"), '{"revoked": ["1.0.0"]}\n'); // niezacommitowane
+    r.build();
+    expect(existsSync(join(r.dir, "dist/evil.html"))).toBe(false);
+    expect(read(r, "dist/revoked.json")).toBe('{"revoked": []}\n');
+    expect(read(r, "dist/SHA256SUMS")).not.toContain("evil.html");
+  });
+
+  it("plik spoza allowlisty w public/ -> błąd", () => {
+    const r = makeRepo();
+    r.release("1.0.0");
+    mkdirSync(join(r.dir, "public/sub"));
+    writeFileSync(join(r.dir, "public/sub/x.js"), "1\n");
+    r.commit();
+    expect(r.buildError()).toContain("public/sub/x.js: spoza allowlisty");
+  });
+
+  it("brak pliku z allowlisty -> błąd", () => {
+    const r = makeRepo();
+    r.release("1.0.0");
+    r.git("rm", "-q", "public/index.html");
+    r.commit();
+    expect(r.buildError()).toContain("brak public/index.html");
+  });
+
+  it.each([
+    ["nie JSON", "{revoked: []}"],
+    ["bez tablicy", '{"revoked": "0.9.0"}'],
+    ["brak klucza revoked", "{}"],
+    ["nadmiarowy klucz", '{"revoked": [], "x": 1}'],
+    ["wpis nie X.Y.Z", '{"revoked": ["0.9"]}'],
+    ["wpis nie tekst", '{"revoked": [1]}'],
+    ["tablica zamiast obiektu", "[]"],
+  ])("revoked.json %s -> błąd", (_name, body) => {
+    const r = makeRepo();
+    r.release("1.0.0");
+    writeFileSync(join(r.dir, "public/revoked.json"), `${body}\n`);
+    r.commit();
+    expect(r.buildError()).toContain("public/revoked.json: oczekiwano {\"revoked\": [\"X.Y.Z\", …]}");
+  });
+
+  it("index.html ze skryptem -> błąd", () => {
+    const r = makeRepo();
+    r.release("1.0.0");
+    writeFileSync(join(r.dir, "public/index.html"), INDEX_HTML('<SCRIPT src="x.js"></SCRIPT>'));
+    r.commit();
+    expect(r.buildError()).toContain("public/index.html: zawiera <script");
+  });
+
+  // Końcowy przegląd, M-3: korzeń nie może wskazywać niezbudowanej wersji, a dist/ musi mieć wersję,
+  // która nie jest unieważniona.
+  it("link z index.html do zbudowanej wersji -> ok; do niezbudowanej -> błąd", () => {
+    const r = makeRepo();
+    r.release("1.0.0");
+    writeFileSync(join(r.dir, "public/index.html"), INDEX_HTML('<li><a href="v1.0.0/demo.html">d</a></li>'));
+    r.commit();
+    r.build();
+    writeFileSync(join(r.dir, "public/index.html"), INDEX_HTML('<li><a href="v1.1.0/demo.html">d</a></li>'));
+    r.commit();
+    expect(r.buildError()).toContain("public/index.html: link do niezbudowanej wersji v1.1.0");
+  });
+
+  it("wszystkie zbudowane wersje unieważnione -> błąd", () => {
+    const r = makeRepo();
+    r.release("1.0.0");
+    writeFileSync(join(r.dir, "public/revoked.json"), '{"revoked": ["1.0.0"]}\n');
+    r.commit();
+    expect(r.buildError()).toContain("brak zbudowanej wersji spoza public/revoked.json");
   });
 });
