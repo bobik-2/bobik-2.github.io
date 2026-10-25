@@ -3,7 +3,12 @@
 import { VaultError } from "./errors.js";
 import { formatCounters, statusText } from "./prompts.js";
 
-export function createUi(doc) {
+// Przegląd 9–10, M-1: operacje bez WebAuthn (klucz kliniki, grant, dzierżawa) chroni tylko kliknięcie
+// w ramce, którą przejęty panel może przykryć przynętą. Przycisk zatwierdzenia jest nieaktywny przez
+// chwilę po pokazaniu (kliknięcie „w locie” w niego nie trafi), a fokus stoi na „Anuluj”.
+export const CONFIRM_DELAY_MS = 1000;
+
+export function createUi(doc, { timers = globalThis } = {}) {
   const el = (id) => {
     const node = doc.getElementById(id);
     if (!node) throw new Error(`ui: brak #${id} w index.html`);
@@ -19,15 +24,24 @@ export function createUi(doc) {
   const cancel = el("prompt-cancel");
   const lock = el("lock");
   let pending = null;
+  let armTimer = null;
 
+  function disarm() {
+    if (armTimer !== null) timers.clearTimeout(armTimer);
+    armTimer = null;
+  }
   function settle(finish) {
     if (!pending) return;
     const current = pending;
     pending = null;
+    disarm();
     prompt.hidden = true;
     finish(current);
   }
-  ok.addEventListener("click", () => settle((p) => p.resolve()));
+  ok.addEventListener("click", () => {
+    if (ok.disabled) return;
+    settle((p) => p.resolve());
+  });
   cancel.addEventListener("click", () => settle((p) => p.reject(new VaultError("user_rejected"))));
 
   return {
@@ -44,7 +58,13 @@ export function createUi(doc) {
       ok.textContent = spec.confirm;
       cancel.textContent = spec.cancel;
       prompt.hidden = false;
-      ok.focus();
+      disarm();
+      ok.disabled = true;
+      armTimer = timers.setTimeout(() => {
+        armTimer = null;
+        ok.disabled = false;
+      }, CONFIRM_DELAY_MS);
+      cancel.focus();
       return new Promise((resolve, reject) => {
         pending = { resolve, reject };
       });
