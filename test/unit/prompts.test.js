@@ -22,20 +22,24 @@ it("nadanie dostępu: odcisk w pierwszym wierszu, potem numer lekarza (kontekst 
   const p = PROMPTS.grantAccess("dr Piotr", fp, 18);
   expect(p.kind).toBe("grant_access");
   expect(p.lines[0]).toBe(`Odcisk klucza odbiorcy: ${fp}`);
-  expect(p.lines[1]).toBe("Odbiorca: lekarz nr 18 — nazwa z panelu (niezweryfikowana): dr Piotr");
+  expect(p.lines[1]).toBe("Odbiorca: lekarz nr 18");
+  expect(p.lines[2]).toBe("Nazwa odbiorcy z panelu (niezweryfikowana): dr Piotr");
   expect(p.confirm).toBe("Odcisk zgodny — nadaj dostęp");
 });
 
 it("wiersze związane kryptograficznie (`bound`) i etykiety z panelu (`untrusted`) są oznaczone", () => {
-  expect(PROMPTS.grantAccess("dr P", "X", 18)).toMatchObject({ bound: [0], untrusted: [1] });
-  expect(PROMPTS.createClinic("K", 5)).toMatchObject({ bound: [], untrusted: [0] });
+  // Ponowny przegląd, N-3: numery związane kryptograficznie w osobnym wierszu `bound` — ellipsis
+  // wiersza `untrusted` przy wąskiej ramce nie może ich uciąć.
+  expect(PROMPTS.grantAccess("dr P", "X", 18)).toMatchObject({ bound: [0, 1], untrusted: [2] });
+  expect(PROMPTS.createClinic("K", 5)).toMatchObject({ bound: [0], untrusted: [1] });
   expect(PROMPTS.grantLease({ kind: "addendum", interviewId: IV, studyCode: "S", sessionSeq: null, agentRunId: null })).toMatchObject({ bound: [0], untrusted: [1] });
   expect(PROMPTS.registerKey(1, "dr A")).toMatchObject({ untrusted: [0] });
 });
 
 it("klucz kliniki: numer kliniki (kontekst grantu) i etykieta z panelu", () => {
   const p = PROMPTS.createClinic("Klinika Testowa", 5);
-  expect(p.lines[0]).toBe("Klinika nr 5 — nazwa z panelu (niezweryfikowana): Klinika Testowa");
+  expect(p.lines[0]).toBe("Klinika nr 5");
+  expect(p.lines[1]).toBe("Nazwa kliniki z panelu (niezweryfikowana): Klinika Testowa");
 });
 
 it.each([

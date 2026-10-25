@@ -49,7 +49,7 @@ describe("create_clinic_key (F4)", () => {
     const created = await t.ok("create_clinic_key", { clinic_id: 5, clinic_label: "Klinika Testowa" });
     const prompt = t.ui.prompts.at(-1);
     expect(prompt.kind).toBe("create_clinic");
-    expect(prompt.lines[0]).toBe("Klinika nr 5 — nazwa z panelu (niezweryfikowana): Klinika Testowa"); // L-1
+    expect(prompt.lines.slice(0, 2)).toEqual(["Klinika nr 5", "Nazwa kliniki z panelu (niezweryfikowana): Klinika Testowa"]); // L-1, N-3
     expect(fromB64url(created.wrapped_private)[0]).toBe(1);
     expect(t.vault.keys()).toHaveLength(1);
     const loaded = await t.ok("load_clinic_key", {
@@ -85,7 +85,7 @@ describe("grant_clinic_access (F4, D5, B-D4)", () => {
     expect(prompt.kind).toBe("grant_access");
     // M-2: odcisk w pierwszym wierszu, etykieta oznaczona jako niezweryfikowana.
     expect(prompt.lines[0]).toBe(`Odcisk klucza odbiorcy: ${regB.fingerprint}`);
-    expect(prompt.lines[1]).toBe("Odbiorca: lekarz nr 18 — nazwa z panelu (niezweryfikowana): dr Piotr Zieliński");
+    expect(prompt.lines.slice(1, 3)).toEqual(["Odbiorca: lekarz nr 18", "Nazwa odbiorcy z panelu (niezweryfikowana): dr Piotr Zieliński"]);
     expect(granted.recipient_fingerprint).toBe(regB.fingerprint);
     await unlockDoctor(b, regB, { doctor_id: 18 });
     const loaded = await b.ok("load_clinic_key", {

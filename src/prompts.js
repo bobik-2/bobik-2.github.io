@@ -55,14 +55,16 @@ export const PROMPTS = {
     cancel: "Anuluj",
   }),
   // Identyfikatory związane kryptograficznie (kontekst grantu `clinic=`/`doctor=`, info clinic_wrap)
-  // stoją przed etykietami, które panel podaje bez uwierzytelnienia (przegląd 9–10, L-1 i M-2).
+  // stoją przed etykietami, które panel podaje bez uwierzytelnienia (przegląd 9–10, L-1 i M-2), we
+  // własnych wierszach `bound`: ellipsis wiersza `untrusted` w wąskiej ramce ich nie utnie (N-3).
   createClinic: (label, clinicId) => ({
     kind: "create_clinic",
     title: "Nowy klucz kliniki",
-    bound: [],
-    untrusted: [0],
+    bound: [0],
+    untrusted: [1],
     lines: [
-      `Klinika nr ${clinicId} — nazwa z panelu (niezweryfikowana): ${label}`,
+      `Klinika nr ${clinicId}`,
+      `Nazwa kliniki z panelu (niezweryfikowana): ${label}`,
       "Klucz prywatny kliniki powstaje w sejfie i nie opuszcza go w postaci jawnej.",
     ],
     confirm: "Załóż klucz",
@@ -71,12 +73,13 @@ export const PROMPTS = {
   grantAccess: (label, fingerprint, recipientId) => ({
     kind: "grant_access",
     title: "Nadanie dostępu do kliniki",
-    bound: [0],
-    untrusted: [1],
+    bound: [0, 1],
+    untrusted: [2],
     // Odcisk (liczony w sejfie) zawsze w pierwszym wierszu, przed nieuwierzytelnioną etykietą (M-2).
     lines: [
       `Odcisk klucza odbiorcy: ${fingerprint}`,
-      `Odbiorca: lekarz nr ${recipientId} — nazwa z panelu (niezweryfikowana): ${label}`,
+      `Odbiorca: lekarz nr ${recipientId}`,
+      `Nazwa odbiorcy z panelu (niezweryfikowana): ${label}`,
       "Porównaj odcisk i numer lekarza z tym, co odbiorca odczytał ze swojego sejfu — przez telefon albo osobiście, nie przez panel.",
     ],
     confirm: "Odcisk zgodny — nadaj dostęp",
