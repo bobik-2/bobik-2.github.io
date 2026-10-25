@@ -19,6 +19,12 @@ ustalono"). Przed pierwszym użyciem klinicznym dopisz je (każda klinika ma wł
 i wydaj nową wersję. To jedyne odłożenie w v0.2.0; do tego czasu w bobik-2 obowiązuje
 `KEYVAULT_BROWSER_CLINICS_ENABLED=False`.
 
+**Wydanie z hostami produkcyjnymi: w tym samym PR-ze dopisz `0.2.0` do `public/revoked.json`.**
+Wydane wersje są niezmienne i żyją równolegle, a v0.2.0 na stałe uznaje za panel
+`http://127.0.0.1:8000` — po wydaniu produkcyjnym dalej działałaby pod produkcyjnym RP ID dla
+dowolnego procesu na tym porcie u lekarza (`runserver`, narzędzie deweloperskie, malware). Nowa
+wersja ma wyłącznie originy `https://`. Pilnuje tego `test/unit/release.test.js`.
+
 ## Układ
 
 - `src/` — kod jednej wersji sejfu, publikowany pod `/v<VERSION>/`: rdzeń `core.js` (stany
@@ -50,6 +56,24 @@ Nowa wersja:
    publikuje wszystkie wersje. Ponowny deploy: `gh workflow run CI --ref main`.
 5. W bobik-2: commit zmieniający domyślne `KEYVAULT_VAULT_VERSION` w `settings.py`.
 
+Uwagi operacyjne:
+
+- **Merge wyłącznie commitem scalającym.** Ruleset `main` dopuszcza też squash i rebase — nie używaj
+  ich: otagowany commit wypada z historii `main` i każdy kolejny deploy pada na „tag spoza historii
+  HEAD”. Tag wypychaj **przed** merge'em (build `main` z linkiem do niewydanej wersji w
+  `public/index.html` pada).
+- **Tagi `v*` nie mają rulesetu** (usunięcie, nadpisanie, tworzenie przez kogokolwiek z prawem
+  zapisu). Build to łapie fail-closed (brak podpisu, sumy bez taga), skutkiem jest zablokowany
+  deploy, nie publikacja.
+- **Rotacja klucza podpisującego — procedura do ustalenia.** Wpis w `releases/allowed_signers` nie
+  ma `valid-before`/`valid-after`; usunięcie klucza unieważnia podpisy wszystkich wydanych tagów
+  i build pada na pierwszym z nich. Kierunek: nowy klucz w `allowed_signers`, `valid-before` na
+  starym, ponowne podpisanie istniejących wersji nowym kluczem pod tymi samymi nazwami (nowy obiekt
+  taga na ten sam commit, sumy bez zmian).
+- `public/` idzie do `dist/` z `git archive HEAD public` (nie z dysku): wyłącznie `index.html`
+  (bez `<script`) i `revoked.json` (`{"revoked": ["X.Y.Z", …]}`); build pada też, gdy każda
+  zbudowana wersja jest unieważniona. Artefakt Pages buduje osobny job `build` bez `npm ci`.
+
 ## Dev i E2E
 
 ```bash
@@ -80,7 +104,11 @@ we wszystkich trzech silnikach). Bez `ancestorOrigins` (starsze przeglądarki) r
 - `hello` zaraz po załadowaniu, porównanie `version`; brak odpowiedzi w 5 s = host spoza listy.
 - `open`: element `sealed` wymaga `interview_id` (dokleja go panel z `ciphertexts.interview`), pola
   z `blob: null` panel pomija; nowe wywiady w paczkach ≤ 10 (limit okna 5 min).
-- `unlock` przyjmuje `credentials` z `GET state/` wprost (nadmiarowe pola ignorowane).
+- `unlock` przyjmuje `credentials` z `GET state/` wprost (nadmiarowe pola ignorowane), najwyżej
+  **10 poświadczeń** na lekarza (więcej → `bad_args`, lekarz nie odblokuje sejfu). Serwer musi
+  ograniczyć `add_credential` do 10 (B3).
+- Po odblokowaniu sejf pokazuje „Lekarz nr N · odcisk Twojego klucza: …” — numer i odcisk, które
+  odbiorca grantu podaje nadającemu.
 - Operacje interaktywne: limit 120 s po stronie panelu i sejfu; druga naraz → `busy`.
 - Zdarzenie `{v: 1, event: "locked", reason}` przychodzi przy każdej blokadzie ze stanu `unlocked`
   (`user`, `idle`, `max_age`, `limit`). Progi `idle`/`max_age` sejf sprawdza też przy każdym żądaniu:
