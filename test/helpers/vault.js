@@ -1,4 +1,6 @@
 // Fabryka sejfu do testów rdzenia: atrapy authenticatora i UI, zegar i timery pod kontrolą testu.
+import { fromB64url } from "../../src/b64.js";
+import { BOBIK2, loadSejf } from "./vectors.js";
 import { VERSION } from "../../src/config.js";
 import { createVault } from "../../src/core.js";
 import { fakeAuthenticators } from "./fake-webauthn.js";
@@ -66,4 +68,23 @@ export async function registerDoctor(t, { doctor_id = 17, display_name = "dr Ann
 export async function unlockDoctor(t, reg, { doctor_id = 17, index = 1 } = {}) {
   t.auth.insert(reg.credentials[index].credential_id);
   return t.ok("unlock", { doctor_id, public_key_der: reg.public_key_der, credentials: reg.credentials });
+}
+
+// Odblokowanie lekarzem z sejf_v1.json: „klucze" atrapy zwracają prf_output z wektora.
+export async function unlockFromVector(t) {
+  const S = loadSejf();
+  for (const c of S.credentials) t.auth.addFixed(fromB64url(c.credential_id), fromB64url(c.prf_output));
+  t.auth.insert(S.credentials[0].credential_id);
+  await t.ok("unlock", { doctor_id: S.doctor.doctor_id, public_key_der: S.doctor.public_key_spki_der, credentials: S.credentials });
+  return S;
+}
+
+// Klucz kliniki z bobik2_v1.json, otwierany grantem F4 z sejf_v1.json.
+export function loadBobik2Clinic(t, S) {
+  return t.ok("load_clinic_key", {
+    clinic_id: BOBIK2.clinic_id,
+    clinic_key_id: BOBIK2.clinic_key_id,
+    clinic_public_key_der: BOBIK2.clinic.public_key_spki_der,
+    wrapped_private: S.clinic_grant.wrapped_private,
+  });
 }
