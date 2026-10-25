@@ -60,6 +60,19 @@ describe("grant_lease (F6, rozstrzygnięcie 2)", () => {
     expect(await t.call("grant_lease", bobik2LeaseArgs(over))).toMatchObject({ ok: false, error: "bad_args" });
   });
 
+  // Przegląd 5–8, L1: zły clinic_wrap wychodził dopiero po pytaniu i po naliczeniu limitu.
+  it.each([
+    ["za krótki (3 B)", "AAAA"],
+    ["o bajt za krótki (112 B)", toB64url(new Uint8Array(112))],
+    ["o bajt za długi (114 B)", toB64url(new Uint8Array(114))],
+  ])("clinic_wrap %s -> bad_args przed pytaniem lekarza i bez kosztu", async (_name, wrap) => {
+    const t = await ready();
+    const asked = t.ui.prompts.length;
+    expect(await t.call("grant_lease", bobik2LeaseArgs({ clinic_wrap: wrap }))).toMatchObject({ ok: false, error: "bad_args" });
+    expect(t.ui.prompts).toHaveLength(asked);
+    expect(t.vault.view().counters.interviews).toBe(0);
+  });
+
   it("klucz dzierżawy RSA-2048 albo EC -> bad_lease_key", async () => {
     const t = await ready();
     expect(await t.call("grant_lease", bobik2LeaseArgs({ lease_public_key_der: await rsa2048Spki() }))).toMatchObject({ ok: false, error: "bad_lease_key" });

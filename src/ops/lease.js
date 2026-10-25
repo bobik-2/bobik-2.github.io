@@ -1,7 +1,7 @@
 // grant_lease (F6): lekarz zatwierdza w sejfie rodzaj, wywiad i czas; DEK pod kluczem dzierżawy.
 // Pochodzenie klucza dzierżawy nie jest weryfikowane (rozstrzygnięcie 2); study_code to etykieta (B-R8).
 import { toB64url } from "../b64.js";
-import { openClinicWrap } from "../crypto/fields.js";
+import { CLINIC_WRAP_LEN, openClinicWrap } from "../crypto/fields.js";
 import { importLeaseKey, wrapDekForLease } from "../crypto/lease.js";
 import { VaultError } from "../errors.js";
 import { PROMPTS } from "../prompts.js";
@@ -20,7 +20,8 @@ export const grantLease = {
       interviewId: uuid(req.interview_id),
       interviewKeyId: uuid(req.interview_key_id),
       clinicKeyId: uuid(req.clinic_key_id),
-      clinicWrap: bytes(req.clinic_wrap, { max: 1024 }),
+      // Dokładna długość już tu: inaczej lekarz zatwierdzałby coś, co nie może się udać (L1).
+      clinicWrap: bytes(req.clinic_wrap, { min: CLINIC_WRAP_LEN, max: CLINIC_WRAP_LEN }),
       studyCode: text(req.study_code, 64),
       kind,
       sessionSeq,
