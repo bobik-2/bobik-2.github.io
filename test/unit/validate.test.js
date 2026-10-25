@@ -78,6 +78,18 @@ describe("walidatory bad_args (spec B, „Walidacja argumentów”)", () => {
     expect(() => label(v)).toThrow(bad);
   });
 
+  // Ponowny przegląd, N-2: litery renderowane jako puste omijały regułę „bez podwójnych spacji".
+  it.each([
+    ["wypełniacz Hangul U+3164", "dr\u3164\u3164V"],
+    ["wypełniacz Hangul choseong U+115F", "dr\u115fV"],
+    ["wypełniacz Hangul jungseong U+1160", "dr\u1160V"],
+    ["wypełniacz Hangul półszerokości U+FFA0", "dr\uffa0V"],
+    ["pusty znak Braille'a U+2800", "dr\u2800\u2800V"],
+    ["selektor wariantu U+FE0F (Default_Ignorable)", "dr V\ufe0f"],
+  ])("label: %s -> bad_args", (_name, v) => {
+    expect(() => label(v)).toThrow(bad);
+  });
+
   it("label: emoji (para surogatów), NFC z polskimi znakami, pojedyncza spacja przechodzą", () => {
     for (const v of ["Klinika 🏥", "Łódź Śródmieście", "René", "dr V"]) expect(label(v)).toBe(v);
   });

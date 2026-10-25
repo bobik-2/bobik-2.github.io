@@ -31,10 +31,13 @@ export function field(v) {
 // - \p{Cs} (nieparowany surogat), \p{Co} (prywatne), \p{Cn} (nieprzypisane) — nieprzewidywalny glif,
 // - \p{Zs} inne niż U+0020 oraz dwie spacje z rzędu, spacja na początku/końcu — przesunięcie tekstu
 //   tak, by po zawinięciu udawał osobny wiersz,
-// - forma inna niż NFC i więcej niż jeden znak łączący z rzędu (zalgo nachodzące na sąsiednie wiersze).
+// - forma inna niż NFC i więcej niż jeden znak łączący z rzędu (zalgo nachodzące na sąsiednie wiersze),
+// - \p{Default_Ignorable_Code_Point} (m.in. wypełniacze Hangul U+115F/U+1160/U+3164/U+FFA0, selektory
+//   wariantu) i U+2800 (pusty znak Braille'a) — litery renderowane jako puste, które omijałyby regułę
+//   o spacjach (ponowny przegląd, N-2).
 // Długość w jednostkach UTF-16 (String.length): nigdy mniej niż w code pointach, więc limit jest ostrzejszy.
 export const LABEL_MAX = 80;
-const LABEL_FORBIDDEN = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Cs}\p{Co}\p{Cn}]|(?! )\p{Zs}| {2}|^ | $|\p{M}{2}/u;
+const LABEL_FORBIDDEN = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Cs}\p{Co}\p{Cn}\p{Default_Ignorable_Code_Point}\u2800]|(?! )\p{Zs}| {2}|^ | $|\p{M}{2}/u;
 
 export function label(v, max = LABEL_MAX) {
   if (typeof v !== "string" || v.length < 1 || v.length > max) throw bad();
