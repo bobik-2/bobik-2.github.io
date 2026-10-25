@@ -4,7 +4,7 @@ import { random, utf8 } from "../../src/bytes.js";
 import { dekInfo } from "../../src/crypto/context.js";
 import { hpkeSeal } from "../../src/crypto/hpke.js";
 import { importP256Public } from "../../src/crypto/keys.js";
-import { BOBIK2, b, bobik2ExpectedValues, bobik2OpenRequest } from "../helpers/vectors.js";
+import { BOBIK2, b, bobik2ExpectedValues, bobik2LeaseArgs, bobik2OpenRequest } from "../helpers/vectors.js";
 import { loadBobik2Clinic, makeVault, unlockFromVector } from "../helpers/vault.js";
 
 const MIN = 60_000;
@@ -176,5 +176,41 @@ describe("limit w open (V-5)", () => {
     clock.t += 10 * MIN;
     t.vault.tick();
     expect(t.events).toEqual([{ v: 1, event: "locked", reason: "max_age" }]);
+  });
+
+  // Przegląd 5–8, M1: tick bywa dławiony (karta w tle, uśpiony laptop), więc progi sprawdza też
+  // ścieżka żądania — inaczej żądanie po terminie przechodzi, a przy idle dodatkowo odsuwa blokadę.
+  it("żądanie po 15 min bez ticka -> locked i zdarzenie locked/idle; tick nie wysyła drugiego", async () => {
+    const clock = { t: 1_000_000 };
+    const t = await ready({ clock });
+    clock.t += 20 * MIN;
+    expect(await t.call("open", bobik2OpenRequest())).toMatchObject({ ok: false, error: "locked" });
+    expect(t.events).toEqual([{ v: 1, event: "locked", reason: "idle" }]);
+    expect(t.vault.keys()).toEqual([]);
+    expect((await t.call("hello")).result.state).toBe("locked");
+    t.vault.tick();
+    expect(t.events).toHaveLength(1);
+  });
+
+  it("grant_lease po 9 h bez ticka -> locked/max_age, bez pytania lekarza", async () => {
+    const clock = { t: 1_000_000 };
+    const t = await ready({ clock });
+    for (let i = 0; i < 47; i++) {
+      clock.t += 10 * MIN;
+      await t.ok("open", { interviews: [], items: [] }); // aktywność co 10 min: idle nie wygasa
+    }
+    clock.t += 70 * MIN; // razem 9 h od odblokowania; max_age ma pierwszeństwo przed idle
+    const asked = t.ui.prompts.length;
+    expect(await t.call("grant_lease", bobik2LeaseArgs())).toMatchObject({ ok: false, error: "locked" });
+    expect(t.events).toEqual([{ v: 1, event: "locked", reason: "max_age" }]);
+    expect(t.ui.prompts).toHaveLength(asked);
+  });
+
+  it("wygasła sesja: locked przed walidacją argumentów (jak stan locked)", async () => {
+    const clock = { t: 1_000_000 };
+    const t = await ready({ clock });
+    clock.t += 15 * MIN;
+    expect(await t.call("open", { interviews: "zle", items: [] })).toMatchObject({ ok: false, error: "locked" });
+    expect(t.events).toEqual([{ v: 1, event: "locked", reason: "idle" }]);
   });
 });

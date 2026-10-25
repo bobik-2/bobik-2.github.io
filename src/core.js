@@ -101,6 +101,15 @@ export function createVault({ version = VERSION, ready, browserOk, prf, credenti
     if (!op) throw new ProtocolError("unknown_op");
     if (op.needs !== "none" && state === "refusing") throw new VaultError(refusal);
     if (op.needs === "unlocked" && state !== "unlocked") throw new VaultError("locked");
+    // Progi idle / max_age także na ścieżce żądania, nie tylko w tick(): timer w karcie w tle
+    // bywa dławiony, a touch() poniżej odsunąłby termin bezczynności (przegląd 5–8, M1).
+    if (op.needs === "unlocked") {
+      const reason = limiter.expired();
+      if (reason) {
+        lock(reason);
+        throw new VaultError("locked");
+      }
+    }
     const args = op.parse(req);
     if (op.interactive && busy) throw new VaultError("busy");
     if (op.interactive) busy = true;
