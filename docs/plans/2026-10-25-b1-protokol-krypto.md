@@ -5585,7 +5585,22 @@ we wszystkich trzech silnikach). Bez `ancestorOrigins` (starsze przeglądarki) r
   z `blob: null` panel pomija; nowe wywiady w paczkach ≤ 10 (limit okna 5 min).
 - `unlock` przyjmuje `credentials` z `GET state/` wprost (nadmiarowe pola ignorowane).
 - Operacje interaktywne: limit 120 s po stronie panelu i sejfu; druga naraz → `busy`.
-- Zdarzenie `{v: 1, event: "locked", reason}` przychodzi przy każdej blokadzie.
+- Zdarzenie `{v: 1, event: "locked", reason}` przychodzi przy każdej blokadzie ze stanu `unlocked`
+  (`user`, `idle`, `max_age`, `limit`). Progi `idle`/`max_age` sejf sprawdza też przy każdym żądaniu:
+  żądanie po terminie dostaje `locked` (i zdarzenie), nawet gdy zdławiony timer jeszcze nie zadziałał.
+- Ponowny `unlock` w stanie `unlocked` podmienia sesję i zeruje liczniki **bez** zdarzenia `locked`:
+  załadowane klucze kliniki i DEK znikają, panel musi ponownie wysłać `load_clinic_key` (inaczej
+  dostanie `clinic_key_not_loaded`).
+- Potwierdzenia w sejfie: fokus na „Anuluj”, przycisk zatwierdzenia nieaktywny przez 1 s po
+  pokazaniu (ochrona przed clickjackingiem) — panel nie powinien zakładać natychmiastowego zatwierdzenia.
+- Etykiety (`display_name`, `clinic_label`, `recipient_label`) maks. 80 znaków, `study_code` maks. 64;
+  dozwolone tylko widoczne znaki w NFC z pojedynczą zwykłą spacją (bez znaków sterujących,
+  formatujących, separatorów wierszy, spacji innych niż U+0020, podwójnych spacji i spacji na
+  brzegach) — inaczej `bad_args`. Pola modeli bobik-2 mają do 200 znaków, więc panel normalizuje
+  i skraca etykietę przed wysłaniem.
+- `grant_lease`: `clinic_wrap` ma dokładnie 113 B, inna długość → `bad_args` przed pytaniem lekarza.
+- Potwierdzenia pokazują identyfikatory związane kryptograficznie: numer kliniki, numer lekarza
+  odbiorcy, UUID wywiadu (`interview_id`) — przed etykietami z panelu.
 - Iframe sejfu musi siedzieć **bezpośrednio** w dokumencie panelu najwyższego poziomu: żadnych
   zagnieżdżeń (panel w ramce, także własnej), sandboxu bez `allow-same-origin`, `data:`/`srcdoc`.
   Więcej niż jeden przodek w `location.ancestorOrigins` = brak odpowiedzi. `referrerpolicy="no-referrer"`
