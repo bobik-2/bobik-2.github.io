@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { VAULT } from "../../playwright.config.js";
+import { VAULT, VAULT_PATH } from "../../playwright.config.js";
 
 const OPTS = { protocol: "ctap2", ctap2Version: "ctap2_1", transport: "usb", hasResidentKey: true,
   hasUserVerification: true, isUserVerified: true, hasPrf: true, automaticPresenceSimulation: true };
 
-const DEMO = `${VAULT}/v0.1.0/demo.html`;
+const DEMO = `${VAULT}${VAULT_PATH}demo.html`;
 
 test.describe("demo — WebAuthn (wirtualny authenticator)", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "wirtualny authenticator tylko przez CDP (Chromium)");
