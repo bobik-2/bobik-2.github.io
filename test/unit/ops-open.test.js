@@ -206,6 +206,39 @@ describe("limit w open (V-5)", () => {
     expect(t.ui.prompts).toHaveLength(asked);
   });
 
+  // Ponowny przegląd, N-1: termin mija w trakcie potwierdzenia (lekarz klika po upływie 8 h,
+  // tick dławiony). Wynik operacji interaktywnej nie wraca po terminie.
+  it.each([
+    ["grant_lease", () => bobik2LeaseArgs(), "rsa_wrapped_dek"],
+    ["create_clinic_key", () => ({ clinic_id: 5, clinic_label: "Klinika Testowa" }), "wrapped_private"],
+  ])("%s: max_age mija w trakcie potwierdzenia -> locked/max_age, bez wyniku", async (op, args, field) => {
+    const clock = { t: 1_000_000 };
+    const t = await ready({ clock });
+    for (let i = 0; i < 47; i++) {
+      clock.t += 10 * MIN;
+      await t.ok("open", { interviews: [], items: [] });
+    }
+    t.ui.onAsk = () => {
+      clock.t += 15 * MIN; // 7 h 50 min + 15 min: termin 8 h mija, zanim lekarz kliknie
+    };
+    const res = await t.call(op, args());
+    expect(res).toMatchObject({ ok: false, error: "locked" });
+    expect(JSON.stringify(res)).not.toContain(field);
+    expect(t.events).toEqual([{ v: 1, event: "locked", reason: "max_age" }]);
+    expect(t.vault.keys()).toEqual([]);
+    expect((await t.call("hello")).result.state).toBe("locked");
+  });
+
+  it("grant_lease: potwierdzenie przed terminem -> wynik wraca (kontrola pozytywna N-1)", async () => {
+    const clock = { t: 1_000_000 };
+    const t = await ready({ clock });
+    t.ui.onAsk = () => {
+      clock.t += MIN;
+    };
+    expect(await t.ok("grant_lease", bobik2LeaseArgs())).toHaveProperty("rsa_wrapped_dek");
+    expect(t.events).toEqual([]);
+  });
+
   it("wygasła sesja: locked przed walidacją argumentów (jak stan locked)", async () => {
     const clock = { t: 1_000_000 };
     const t = await ready({ clock });

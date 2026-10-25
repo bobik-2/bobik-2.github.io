@@ -135,6 +135,15 @@ export function createVault({ version = VERSION, ready, browserOk, prf, credenti
       const result = await op.run(ctx, args, start);
       // Blokada w trakcie operacji: wynik sprzed blokady nie wraca (P3).
       if (bound && epoch !== start) throw new VaultError("locked");
+      // Termin minął w trakcie potwierdzenia (do 120 s, tick bywa dławiony): wynik operacji
+      // interaktywnej nie wraca po idle / max_age (ponowny przegląd, N-1).
+      if (op.interactive && op.needs === "unlocked") {
+        const reason = limiter.expired();
+        if (reason) {
+          lock(reason);
+          throw new VaultError("locked");
+        }
+      }
       return result;
     } catch (e) {
       // WebAuthnError po przerwaniu sygnałem (AbortError -> webauthn_failed) to skutek blokady,
