@@ -37,13 +37,17 @@ test("P-1: rejestracja, odblokowanie, klucz kliniki, nadanie dostępu, odczyt, d
   const authB = await authenticators(contextB, pageB);
   await openPanel(pageB);
   const regB = await register(pageB, authB, { doctorId: 18, displayName: "dr Piotr Zieliński" });
+  // recipient_label z HTML-em też trafia do DOM wyłącznie jako tekst (przegląd 9–10, L-2).
+  const recipientLabel = '<img src=x onerror="window.pwned=1">dr Piotr Zieliński';
   const granting = call(page, "grant_clinic_access", {
     clinic_key_id: clinicKeyId,
     recipient_doctor_id: 18,
-    recipient_label: "dr Piotr Zieliński",
+    recipient_label: recipientLabel,
     recipient_public_key_der: regB.public_key_der,
   });
-  await expect(vaultFrame(page).locator("#prompt-lines")).toContainText(regB.fingerprint);
+  await expect(vaultFrame(page).locator("#prompt-lines p").first()).toHaveText(`Odcisk klucza odbiorcy: ${regB.fingerprint}`);
+  await expect(vaultFrame(page).locator("#prompt-lines")).toContainText(recipientLabel);
+  await expect(vaultFrame(page).locator("#prompt img")).toHaveCount(0);
   await clickInVault(page, "Odcisk zgodny — nadaj dostęp");
   const granted = await granting;
   expect(granted).toMatchObject({ ok: true, result: { recipient_fingerprint: regB.fingerprint } });
@@ -63,8 +67,12 @@ test("P-1: rejestracja, odblokowanie, klucz kliniki, nadanie dostępu, odczyt, d
   await expect(vaultFrame(page).locator("#counter")).toContainText("Wywiady: 1/50 · wartości kliniki: 3/500"); // 2 pola STC + 1 przypadek negatywny
 
   // grant_lease: lekarz widzi wywiad, rodzaj i czas; DEK otwiera klucz dzierżawy.
-  const leasing = call(page, "grant_lease", bobik2LeaseArgs());
-  await expect(vaultFrame(page).locator("#prompt-lines")).toContainText("BOB-0001");
+  // study_code z HTML-em: tekst, nie element; pierwszy wiersz to UUID wywiadu (L-1, L-2).
+  const studyCode = '<img src=x onerror="window.pwned=1">BOB-0001';
+  const leasing = call(page, "grant_lease", bobik2LeaseArgs({ study_code: studyCode }));
+  await expect(vaultFrame(page).locator("#prompt-lines p").first()).toHaveText(`Wywiad: ${BOBIK2.interview_id}`);
+  await expect(vaultFrame(page).locator("#prompt-lines")).toContainText(`Kod wywiadu z panelu: ${studyCode}`);
+  await expect(vaultFrame(page).locator("#prompt img")).toHaveCount(0);
   await expect(vaultFrame(page).locator("#prompt-lines")).toContainText("7 dni");
   await clickInVault(page, "Zatwierdź");
   const leased = await leasing;
@@ -79,6 +87,8 @@ test("P-1: rejestracja, odblokowanie, klucz kliniki, nadanie dostępu, odczyt, d
   await expect.poll(() => page.evaluate(() => window.vaultEvents)).toEqual([{ v: 1, event: "locked", reason: "user" }]);
   await expect(vaultFrame(page).locator("#status")).toHaveText("Sejf zablokowany");
   expect(await call(page, "open", bobik2OpenRequest())).toMatchObject({ ok: false, error: "locked" });
+  // Uzupełniająco: CSP script-src 'self' zablokowałaby inline onerror nawet przy innerHTML, więc
+  // dowodem braku sinka są asercje `#prompt img` = 0 powyżej, nie ta.
   expect(await vaultFrameHandle(page).evaluate(() => window.pwned)).toBeUndefined();
 });
 

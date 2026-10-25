@@ -11,8 +11,11 @@ test("hello: wersja, stan, przeglądarka (moduły i wendorowane HPKE ładują si
   expect([true, false, null]).toContain(res.result.prf);
 });
 
-test("P-4 / P-3: panel spoza listy originów nie dostaje żadnej odpowiedzi", async ({ page }) => {
+test("P-4 / P-3: panel spoza listy originów nie dostaje żadnej odpowiedzi", async ({ page, browserName }) => {
   await openPanel(page, { base: FOREIGN_PANEL });
+  // Kontrola pozytywna (przegląd 9–10, L-2): sejf w ramce działa — data-state ustawia dopiero render()
+  // z vault.js (statyczny #status z index.html tego nie dowodzi) — a mimo to milczy.
+  await expect(vaultFrame(page).locator("body")).toHaveAttribute("data-state", browserName === "webkit" ? "refusing" : "locked");
   expect(await call(page, "hello", {}, 2_000)).toEqual({ timeout: true });
 });
 
