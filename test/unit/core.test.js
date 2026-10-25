@@ -255,6 +255,30 @@ describe("busy, blokada w trakcie operacji, limit czasu (P3, P4, Review Focus 1)
     expect(t.vault.keys()).toEqual([]);
   });
 
+  // Przegląd 5–8, L3: register nie używa kluczy sesji, ale operacja sprzed blokady kończy się locked
+  // (P3). Atrapa ignoruje AbortSignal, więc sprawdza kontrolę epoki, a nie przerwanie WebAuthn.
+  it("register: blokada w trakcie create() drugiego klucza -> locked, bez public_key_der", async () => {
+    const t = makeVault();
+    const create = t.auth.credentials.create;
+    let release;
+    const gate = new Promise((r) => { release = r; });
+    let calls = 0;
+    t.auth.credentials.create = async (opts) => {
+      calls += 1;
+      if (calls === 2) await gate;
+      return create(opts);
+    };
+    t.ui.onAsk = (prompt) => {
+      if (prompt.kind === "register_key") t.auth.insertNew();
+    };
+    const pending = t.call("register", REG);
+    await vi.waitFor(() => expect(calls).toBe(2));
+    t.vault.lock();
+    release();
+    const res = await pending;
+    expect(res).toEqual({ v: 1, id: "t1", ok: false, error: "locked" });
+  });
+
   it("potwierdzenie bez odpowiedzi przez 120 s -> user_rejected", async () => {
     const t = makeVault({ ui: fakeUi({ answers: ["hang"] }) });
     const pending = t.call("register", REG);

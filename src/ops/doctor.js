@@ -73,6 +73,7 @@ async function unwrapWith(ctx, { doctorId, spkiHex, credentials }, { extractable
 export const register = {
   needs: "ready",
   interactive: true,
+  bindsEpoch: true, // blokada w trakcie rejestracji -> locked zamiast wyniku (P3, przegląd 5–8 L3)
   parse: (req) => ({ doctorId: posInt(req.doctor_id), displayName: text(req.display_name, 200) }),
   async run(ctx, { doctorId, displayName }) {
     const enrolled = [];

@@ -114,11 +114,14 @@ export function createVault({ version = VERSION, ready, browserOk, prf, credenti
     if (op.interactive && busy) throw new VaultError("busy");
     if (op.interactive) busy = true;
     const start = epoch;
+    // Kontrola epoki po operacji: wszystkie wymagające odblokowania oraz jawnie oznaczone
+    // (register, L3). Nie unlock: ten sam podbija epokę w unlockWith i tam ją sprawdza.
+    const bound = op.needs === "unlocked" || op.bindsEpoch === true;
     try {
       if (op.needs === "unlocked") limiter.touch();
       const result = await op.run(ctx, args, start);
-      // Blokada w trakcie operacji: wynik policzony kluczami poprzedniej sesji nie wraca (P3).
-      if (op.needs === "unlocked" && epoch !== start) throw new VaultError("locked");
+      // Blokada w trakcie operacji: wynik sprzed blokady nie wraca (P3).
+      if (bound && epoch !== start) throw new VaultError("locked");
       return result;
     } finally {
       if (op.interactive) busy = false;
