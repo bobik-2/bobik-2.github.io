@@ -279,6 +279,57 @@ describe("busy, blokada w trakcie operacji, limit czasu (P3, P4, Review Focus 1)
     expect(res).toEqual({ v: 1, id: "t1", ok: false, error: "locked" });
   });
 
+  // Przegląd 5–8, L2: natywne okno WebAuthn nie kończy się samo przy blokadzie, więc trzymało busy.
+  // Atrapa: wywołanie wisi, dopóki sygnał go nie przerwie (jak przeglądarka: AbortError).
+  function hangUntilAborted(seen) {
+    return (options) =>
+      new Promise((_resolve, reject) => {
+        seen.push(options.signal);
+        options.signal?.addEventListener("abort", () => reject(new DOMException("przerwane", "AbortError")));
+      });
+  }
+
+  it("register: blokada przerywa create() przez AbortSignal -> locked; busy zwolnione, nowe pytanie się nie pojawia", async () => {
+    const t = makeVault();
+    const create = t.auth.credentials.create;
+    const signals = [];
+    t.auth.credentials.create = hangUntilAborted(signals);
+    t.auth.insertNew();
+    const pending = t.call("register", REG);
+    await vi.waitFor(() => expect(signals).toHaveLength(1));
+    expect(signals[0]).toBeInstanceOf(AbortSignal);
+    t.vault.lock();
+    expect(await pending).toMatchObject({ ok: false, error: "locked" });
+    expect(signals[0].aborted).toBe(true);
+    expect(t.ui.prompts.map((p) => p.kind)).toEqual(["register_key"]);
+    t.auth.credentials.create = create;
+    expect((await registerDoctor(t)).credentials).toHaveLength(2);
+  });
+
+  it("unlock: blokada przerywa get() -> locked; kolejna operacja interaktywna nie dostaje busy", async () => {
+    const t = makeVault();
+    const reg = await registerDoctor(t);
+    const get = t.auth.credentials.get;
+    const signals = [];
+    t.auth.credentials.get = hangUntilAborted(signals);
+    const pending = t.call("unlock", { doctor_id: 17, public_key_der: reg.public_key_der, credentials: reg.credentials });
+    await vi.waitFor(() => expect(signals).toHaveLength(1));
+    t.vault.lock();
+    expect(await pending).toMatchObject({ ok: false, error: "locked" });
+    expect(signals[0].aborted).toBe(true);
+    t.auth.credentials.get = get;
+    expect(await unlockDoctor(t, reg)).toEqual({ fingerprint: reg.fingerprint });
+  });
+
+  it("AbortError bez blokady (np. inne okno WebAuthn) -> webauthn_failed, nie locked", async () => {
+    const t = makeVault();
+    t.auth.credentials.create = async () => {
+      throw new DOMException("przerwane", "AbortError");
+    };
+    t.auth.insertNew();
+    expect(await t.call("register", REG)).toMatchObject({ ok: false, error: "webauthn_failed" });
+  });
+
   it("potwierdzenie bez odpowiedzi przez 120 s -> user_rejected", async () => {
     const t = makeVault({ ui: fakeUi({ answers: ["hang"] }) });
     const pending = t.call("register", REG);

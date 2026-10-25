@@ -42,11 +42,12 @@ async function enroll(ctx, { doctorId, displayName, excludeIds, prompt, touchPro
     displayName,
     salt,
     excludeIds,
+    signal: ctx.signal,
   });
   let prf = reg.prfFirst;
   if (!prf) {
     await ctx.ask(touchPrompt);
-    prf = (await evaluatePrf(ctx.credentials, { rpId: ctx.rpId, keys: [{ credentialId: reg.credentialId, salt }] })).prfFirst;
+    prf = (await evaluatePrf(ctx.credentials, { rpId: ctx.rpId, keys: [{ credentialId: reg.credentialId, salt }], signal: ctx.signal })).prfFirst;
   }
   return { credentialId: reg.credentialId, salt, prf };
 }
@@ -63,6 +64,7 @@ async function unwrapWith(ctx, { doctorId, spkiHex, credentials }, { extractable
   const { index, prfFirst } = await evaluatePrf(ctx.credentials, {
     rpId: ctx.rpId,
     keys: credentials.map((c) => ({ credentialId: c.credentialId, salt: c.prfSalt })),
+    signal: ctx.signal,
   });
   const chosen = credentials[index];
   const credential = toB64url(chosen.credentialId);

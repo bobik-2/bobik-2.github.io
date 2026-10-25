@@ -8,11 +8,15 @@ import { OPS } from "./ops/index.js";
 import { errorResponse, okResponse, parseRequest, ProtocolError } from "./protocol.js";
 import { isRevoked } from "./revocation.js";
 import { createSession } from "./session.js";
+import { WebAuthnError } from "./webauthn.js";
 
 export function createVault({ version = VERSION, ready, browserOk, prf, credentials, rpId, ui, emit, now = () => Date.now(), timers = globalThis }) {
   let state = "locked";
   let refusal = null;
   let busy = false;
+  // AbortController bieżącej operacji interaktywnej (busy = najwyżej jedna); lock() przerywa nim
+  // natywne okno WebAuthn, żeby nie trzymało busy do zamknięcia przez przeglądarkę (L2).
+  let controller = null;
   let epoch = 0;
   let session = createSession();
   const limiter = createLimiter(now);
@@ -45,6 +49,7 @@ export function createVault({ version = VERSION, ready, browserOk, prf, credenti
     session = createSession();
     limiter.reset();
     state = "locked";
+    controller?.abort();
     ui.cancel("locked");
     render();
     if (wasUnlocked) emit({ v: 1, event: "locked", reason });
@@ -52,6 +57,8 @@ export function createVault({ version = VERSION, ready, browserOk, prf, credenti
 
   // Potwierdzenie w UI sejfu; bez odpowiedzi przez 120 s → user_rejected (P4).
   function ask(prompt) {
+    // Po blokadzie przerwana operacja nie pokazuje już kolejnych pytań (np. „Zarejestruj klucz 2").
+    if (controller?.signal.aborted) return Promise.reject(new VaultError("locked"));
     const timer = timers.setTimeout(() => ui.cancel("user_rejected"), LIMITS.INTERACTION_TIMEOUT_MS);
     return ui.ask(prompt).finally(() => timers.clearTimeout(timer));
   }
@@ -81,6 +88,9 @@ export function createVault({ version = VERSION, ready, browserOk, prf, credenti
     },
     get session() {
       return session;
+    },
+    get signal() {
+      return controller?.signal;
     },
     ask,
     charge,
@@ -112,7 +122,10 @@ export function createVault({ version = VERSION, ready, browserOk, prf, credenti
     }
     const args = op.parse(req);
     if (op.interactive && busy) throw new VaultError("busy");
-    if (op.interactive) busy = true;
+    if (op.interactive) {
+      busy = true;
+      controller = new AbortController();
+    }
     const start = epoch;
     // Kontrola epoki po operacji: wszystkie wymagające odblokowania oraz jawnie oznaczone
     // (register, L3). Nie unlock: ten sam podbija epokę w unlockWith i tam ją sprawdza.
@@ -123,8 +136,16 @@ export function createVault({ version = VERSION, ready, browserOk, prf, credenti
       // Blokada w trakcie operacji: wynik sprzed blokady nie wraca (P3).
       if (bound && epoch !== start) throw new VaultError("locked");
       return result;
+    } catch (e) {
+      // WebAuthnError po przerwaniu sygnałem (AbortError -> webauthn_failed) to skutek blokady,
+      // nie błąd klucza: panel dostaje locked (P3). Inne błędy i AbortError bez blokady — bez zmian.
+      if (e instanceof WebAuthnError && op.interactive && controller.signal.aborted) throw new VaultError("locked");
+      throw e;
     } finally {
-      if (op.interactive) busy = false;
+      if (op.interactive) {
+        busy = false;
+        controller = null;
+      }
     }
   }
 

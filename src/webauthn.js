@@ -44,10 +44,12 @@ function aaguidOf(authData) {
 // Rejestracja klucza nierezydentnego. prfFirst bywa null: YubiKey bez
 // hmac-secret-mc zwraca przy create() tylko `enabled` — wtedy wywołujący
 // robi evaluatePrf (drugie dotknięcie).
-export async function registerCredential(credentials, { rpId, rpName, userId, userName, displayName, salt, excludeIds = [] }) {
+// `signal` (AbortSignal) przerywa natywne okno przy blokadzie sejfu (przegląd 5–8, L2).
+export async function registerCredential(credentials, { rpId, rpName, userId, userName, displayName, salt, excludeIds = [], signal }) {
   let cred;
   try {
     cred = await credentials.create({
+      signal,
       publicKey: {
         rp: { id: rpId, name: rpName },
         user: { id: userId, name: userName, displayName },
@@ -79,11 +81,12 @@ export async function registerCredential(credentials, { rpId, rpName, userId, us
 
 // Jedno get() dla wszystkich kluczy (evalByCredential, każdy z własną solą).
 // Odpowiada włożony YubiKey; `index` wskazuje, który z `keys`.
-export async function evaluatePrf(credentials, { rpId, keys }) {
+export async function evaluatePrf(credentials, { rpId, keys, signal }) {
   if (keys.length === 0) throw new WebAuthnError("no_keys");
   let assertion;
   try {
     assertion = await credentials.get({
+      signal,
       publicKey: {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
         rpId,
