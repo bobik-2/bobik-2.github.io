@@ -3947,13 +3947,22 @@ describe("filtr rodzica (rozstrzygnięcie 9, P6, V-3, Review Focus 4)", () => {
 `test/unit/dev-config.test.js`:
 
 ```js
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { DEV_PARENT_ORIGINS, rewriteParentOrigins } from "../../scripts/dev-config.mjs";
 import { ALLOWED_PARENT_ORIGINS, VERSION } from "../../src/config.js";
 
 const SRC = readFileSync(new URL("../../src/config.js", import.meta.url), "utf8");
-const load = (text) => import(`data:text/javascript,${encodeURIComponent(text)}`);
+
+// Podmieniony config jako prawdziwy moduł ES (plik tymczasowy — bez zależności od obsługi data: URL).
+function load(text) {
+  const file = join(mkdtempSync(join(tmpdir(), "sejf-config-")), "config.mjs");
+  writeFileSync(file, text);
+  return import(pathToFileURL(file).href);
+}
 
 describe("originy panelu: produkcja i podmiana dev/E2E (rozstrzygnięcie 11, P9, P12)", () => {
   it("VERSION 0.2.0; lista produkcyjna bez zmian względem 0.1.0 (odstępstwo P12)", () => {
