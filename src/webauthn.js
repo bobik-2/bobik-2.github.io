@@ -54,7 +54,9 @@ export async function registerCredential(credentials, { rpId, rpName, userId, us
         challenge: crypto.getRandomValues(new Uint8Array(32)),
         pubKeyCredParams: [{ type: "public-key", alg: -7 }],
         excludeCredentials: excludeIds.map(descriptor),
-        authenticatorSelection: { authenticatorAttachment: "cross-platform", residentKey: "discouraged", userVerification: "discouraged" },
+        // Rozstrzygnięcie 6: PIN obowiązkowy. hmac-secret z UV i bez UV to różne sekrety, więc wybór
+        // wiąże wszystkie wrapy F3 na zawsze; bez PIN-u znaleziony YubiKey + kopia wrapu wystarczają.
+        authenticatorSelection: { authenticatorAttachment: "cross-platform", residentKey: "discouraged", userVerification: "required" },
         hints: ["security-key"],
         extensions: { prf: { eval: { first: salt } } },
       },
@@ -86,7 +88,7 @@ export async function evaluatePrf(credentials, { rpId, keys }) {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
         rpId,
         allowCredentials: keys.map((k) => descriptor(k.credentialId)),
-        userVerification: "discouraged",
+        userVerification: "required",
         hints: ["security-key"],
         extensions: {
           prf: { evalByCredential: Object.fromEntries(keys.map((k) => [toB64url(k.credentialId), { first: k.salt }])) },
