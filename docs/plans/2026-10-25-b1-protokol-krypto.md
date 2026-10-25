@@ -5295,9 +5295,10 @@ Expected: `Good "git" signature for michal.dtz@gmail.com …`; 14 linii sum (pli
 Porównanie z tym, co dziś serwuje Pages (wydana treść nie może się zmienić):
 
 ```bash
-while read -r sum path; do
-  live=$(curl -fsS "https://bobik-2.github.io/v0.1.0/$path" | shasum -a 256 | cut -d' ' -f1)
-  [ "$live" = "$sum" ] && echo "OK  $path" || echo "RÓŻNICA  $path"
+# zmienna `p`, nie `path`: w zsh `path` jest powiązane z $PATH i pętla gubi curl/shasum/cut
+while read -r sum p; do
+  live=$(curl -fsS "https://bobik-2.github.io/v0.1.0/$p" | shasum -a 256 | cut -d' ' -f1)
+  [ "$live" = "$sum" ] && echo "OK  $p" || echo "RÓŻNICA  $p"
 done < releases/0.1.0.sha256
 ```
 
@@ -5703,9 +5704,10 @@ Expected: `Good "git" signature`; lokalny build: `dist: v0.1.0, v0.2.0`; merge c
 
 ```bash
 curl -fsS https://bobik-2.github.io/revoked.json
-while read -r sum path; do
-  live=$(curl -fsS "https://bobik-2.github.io/v0.2.0/$path" | shasum -a 256 | cut -d' ' -f1)
-  [ "$live" = "$sum" ] && echo "OK  $path" || echo "RÓŻNICA  $path"
+# zmienna `p`, nie `path`: w zsh `path` jest powiązane z $PATH i pętla gubi curl/shasum/cut
+while read -r sum p; do
+  live=$(curl -fsS "https://bobik-2.github.io/v0.2.0/$p" | shasum -a 256 | cut -d' ' -f1)
+  [ "$live" = "$sum" ] && echo "OK  $p" || echo "RÓŻNICA  $p"
 done < releases/0.2.0.sha256
 curl -fsS -o /dev/null -w "%{http_code}\n" https://bobik-2.github.io/v0.1.0/index.html
 ```
