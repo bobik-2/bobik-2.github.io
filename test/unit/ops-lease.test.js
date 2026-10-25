@@ -27,7 +27,8 @@ describe("grant_lease (F6, rozstrzygnięcie 2)", () => {
     const res = await t.ok("grant_lease", bobik2LeaseArgs());
     const lines = t.ui.prompts.at(-1).lines.join("\n");
     expect(t.ui.prompts.at(-1).kind).toBe("grant_lease");
-    expect(lines).toContain("BOB-0001");
+    expect(t.ui.prompts.at(-1).lines[0]).toBe(`Wywiad: ${BOBIK2.interview_id}`); // L-1: UUID z info clinic_wrap
+    expect(lines).toContain("Kod wywiadu z panelu: BOB-0001");
     expect(lines).toContain("7 dni");
     expect(b(res.rsa_wrapped_dek)).toHaveLength(384);
     expect(await openWithLeaseKey(res.rsa_wrapped_dek)).toBe(BOBIK2.dek);

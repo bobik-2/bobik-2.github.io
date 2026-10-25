@@ -53,37 +53,45 @@ export const PROMPTS = {
     confirm: "Zarejestruj nowy klucz",
     cancel: "Anuluj",
   }),
-  createClinic: (label) => ({
+  // Identyfikatory związane kryptograficznie (kontekst grantu `clinic=`/`doctor=`, info clinic_wrap)
+  // stoją przed etykietami, które panel podaje bez uwierzytelnienia (przegląd 9–10, L-1 i M-2).
+  createClinic: (label, clinicId) => ({
     kind: "create_clinic",
     title: "Nowy klucz kliniki",
-    lines: [`Zakładam klucz kliniki ${label}.`, "Klucz prywatny kliniki powstaje w sejfie i nie opuszcza go w postaci jawnej."],
+    lines: [
+      `Klinika nr ${clinicId} — nazwa z panelu (niezweryfikowana): ${label}`,
+      "Klucz prywatny kliniki powstaje w sejfie i nie opuszcza go w postaci jawnej.",
+    ],
     confirm: "Załóż klucz",
     cancel: "Anuluj",
   }),
-  grantAccess: (label, fingerprint) => ({
+  grantAccess: (label, fingerprint, recipientId) => ({
     kind: "grant_access",
     title: "Nadanie dostępu do kliniki",
     // Odcisk (liczony w sejfie) zawsze w pierwszym wierszu, przed nieuwierzytelnioną etykietą (M-2).
     lines: [
       `Odcisk klucza odbiorcy: ${fingerprint}`,
-      `Odbiorca — nazwa z panelu (niezweryfikowana): ${label}`,
-      "Porównaj odcisk z tym, który odbiorca odczytał ze swojego sejfu — przez telefon albo osobiście, nie przez panel.",
+      `Odbiorca: lekarz nr ${recipientId} — nazwa z panelu (niezweryfikowana): ${label}`,
+      "Porównaj odcisk i numer lekarza z tym, co odbiorca odczytał ze swojego sejfu — przez telefon albo osobiście, nie przez panel.",
     ],
     confirm: "Odcisk zgodny — nadaj dostęp",
     cancel: "Odcisk niezgodny — anuluj",
   }),
-  grantLease: ({ kind, studyCode, sessionSeq, agentRunId }) => ({
+  // Z wywiadem wiąże dzierżawę tylko interview_id (info clinic_wrap); study_code, rodzaj i czas
+  // deklaruje panel, a długość dzierżawy ustala serwer (I-1).
+  grantLease: ({ kind, interviewId, studyCode, sessionSeq, agentRunId }) => ({
     kind: "grant_lease",
     title: kind === "addendum" ? "Odblokowanie dopisku" : "Dzierżawa naprawcza",
     lines: [
-      `Wywiad: ${studyCode}`,
+      `Wywiad: ${interviewId}`,
+      `Kod wywiadu z panelu: ${studyCode}`,
       kind === "addendum"
         ? "Rodzaj: dopisek pacjenta"
         : sessionSeq !== null
           ? `Rodzaj: naprawa sesji ${sessionSeq}`
           : `Rodzaj: naprawa przebiegu agenta ${agentRunId}`,
-      kind === "addendum" ? "Czas: 7 dni na rozpoczęcie dopisku" : "Czas: 1 h",
-      "Serwer dostanie klucz tego jednego wywiadu na ten czas.",
+      kind === "addendum" ? "Czas (deklaruje panel): 7 dni na rozpoczęcie dopisku" : "Czas (deklaruje panel): 1 h",
+      "Panel prosi o przekazanie serwerowi klucza tego jednego wywiadu.",
     ],
     confirm: "Zatwierdź",
     cancel: "Odrzuć",

@@ -36,7 +36,7 @@ export const createClinicKey = {
   parse: (req) => ({ clinicId: posInt(req.clinic_id), label: label(req.clinic_label) }),
   async run(ctx, { clinicId, label }) {
     const doctor = ctx.session.doctor;
-    await ctx.ask(PROMPTS.createClinic(label));
+    await ctx.ask(PROMPTS.createClinic(label, clinicId));
     const { spki, pkcs8 } = await generateClinicKey();
     try {
       const blob = await sealClinicGrant(doctor.pair.publicKey, {
@@ -70,7 +70,7 @@ export const grantClinicAccess = {
     const recipientKey = await importP256Public(recipientSpki);
     // Odcisk liczony w sejfie z klucza, do którego sejf zaraz zapakuje grant (B-D4).
     const recipientFingerprint = await fingerprint(recipientSpki);
-    await ctx.ask(PROMPTS.grantAccess(label, recipientFingerprint));
+    await ctx.ask(PROMPTS.grantAccess(label, recipientFingerprint, recipientId));
     const pkcs8 = await openClinicGrant(doctor.pair, {
       clinicId: clinic.clinicId,
       doctorId: doctor.doctorId,
