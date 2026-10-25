@@ -36,6 +36,8 @@ describe("registerCredential", () => {
     expect(res).toEqual({ credentialId: id1, prfEnabled: true, prfFirst: prfOut, aaguid: AAGUID, transports: ["usb"] });
     const pk = credentials.create.mock.calls[0][0].publicKey;
     expect(pk.authenticatorSelection.authenticatorAttachment).toBe("cross-platform");
+    // Rozstrzygnięcie 6: PIN YubiKeya obowiązkowy — hmac-secret z UV i bez UV to różne sekrety.
+    expect(pk.authenticatorSelection.userVerification).toBe("required");
     expect(pk.hints).toEqual(["security-key"]);
     expect(pk.rp.id).toBe("bobik-2.github.io");
     expect(pk.extensions.prf.eval.first).toBe(salt1);
@@ -87,6 +89,7 @@ describe("evaluatePrf", () => {
     expect(res).toEqual({ index: 1, prfFirst: prfOut });
     const pk = credentials.get.mock.calls[0][0].publicKey;
     expect(pk.hints).toEqual(["security-key"]);
+    expect(pk.userVerification).toBe("required");
     expect(pk.allowCredentials).toEqual([{ type: "public-key", id: id1 }, { type: "public-key", id: id2 }]);
     expect(pk.extensions.prf.evalByCredential).toEqual({ [toB64url(id1)]: { first: salt1 }, [toB64url(id2)]: { first: salt2 } });
   });

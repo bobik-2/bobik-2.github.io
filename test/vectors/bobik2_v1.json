@@ -1,0 +1,87 @@
+{
+  "format": "bobik2_v1",
+  "note": "Wektory formatów serwera bobik-2 dla sejfu (spec B, „Wektory krzyżowe”). Klucze wyłącznie testowe. Bajty: base64url bez paddingu (F8). clinic_wrap = HPKE(DEK) do klucza kliniki z info = dek_info(interview_id). sealed: koperta Sealed pod DEK z kontekstem sealed_context(interview_id, field), nagłówek niesie interview_key_id. stc: koperta SealedToClinic do klucza kliniki z kontekstem stc_context(clinic_id, field), nagłówek niesie clinic_key_id. value = wartość po JSON.parse. lease_aad informacyjnie (sejf go nie używa). rsa_lease_key: klucz dzierżawy dla F6 — sejf pakuje DEK RSA-OAEP(SHA-256, MGF1-SHA-256, bez etykiety) do public_key_spki_der. negative: error = kod, który sejf ma zwrócić dla elementu open.",
+  "interview_id": "3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b",
+  "clinic_id": 3,
+  "interview_key_id": "11111111-2222-4333-8444-555555555555",
+  "clinic_key_id": "66666666-7777-4888-9999-aaaaaaaaaaaa",
+  "dek": "oTXRNQpIjwUuYCQQKmIUISVHqbFTLJXWRjAjtyntxpI",
+  "clinic": {
+    "private_key_pkcs8_der": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQglUXBQ2U3RiZc8LpZNYNTEwH117kZNQPZC0Nu4VxW38KhRANCAATTrHui9aKLHjv02YpGIZJ7WKOcHVeCNhiiUCkvazMe7_qVwn7siaAV0sfJGTaTFkJl63uWoa-1dOTQcY_bBGcG",
+    "public_key_spki_der": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE06x7ovWiix479NmKRiGSe1ijnB1XgjYYolApL2szHu_6lcJ-7ImgFdLHyRk2kxZCZet7lqGvtXTk0HGP2wRnBg",
+    "fingerprint": "HNYV F5ML G4HP 7GT5 D4A4 P3IW FGVR D7MI"
+  },
+  "clinic_wrap": {
+    "info": "bobik/dek/v1|interview=3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b",
+    "blob": "BEpD0aMae-0T6Oz9Yg7SbEv1fibBApKDSAAlpQ5Ygn23y89mqvzaSwq2xmPMRHTEfz-S0tAVnmE3zy76sHUGYUJyLy0I9YZiCrBYd5AoqXaxUDmFfgx3ncHO_OEFxya_Tsy3Sb6-enotx_nDZQhZby0"
+  },
+  "sealed": [
+    {
+      "field": "interviews.Interview.first_name",
+      "value": "Grażyna",
+      "blob": "AREREREiIkMzhERVVVVVVVVybuWWIEevPld3LJ6RJObHqtvNPiqx0wtO3rS9N6sHF7dmPa2lUw"
+    },
+    {
+      "field": "interviews.Interview.age",
+      "value": 77,
+      "blob": "AREREREiIkMzhERVVVVVVVUdH0F6CAfVA0hRoAObdtPaY499B8VojV3VSbwh0Do"
+    },
+    {
+      "field": "interviews.Interview.surgery_type",
+      "value": "Cholecystektomia laparoskopowa",
+      "blob": "AREREREiIkMzhERVVVVVVVXKuaEtV1qMYspM28jaR92Ohbv-FEl8BOr-qkogHcYTNLhQBUCgMfgjS7ZaC5UutioL4oDbuAhlx8ywqFY"
+    }
+  ],
+  "stc": [
+    {
+      "field": "interviews.Interview.cancelled_reason",
+      "value": "Pacjentka przeniesiona do innego szpitala",
+      "blob": "AmZmZmZ3d0iImZmqqqqqqqoEKHNVC53T4iX1ysT7IeZi7sr7H1QParbBBu14jdLh4KzKZPFLXphON25LxhJ6e9kMMPhPR28BnvOHo2PxW6hrFe-pVpcg4bZqwSVaifillj4nsPru38Fa62ZPQqkKr2rtnjXAICRJZOsd4smR2JNiyve9NDlIAcGAY6HN"
+    },
+    {
+      "field": "core.WithdrawalLog.reason",
+      "value": "Żądanie pacjentki",
+      "blob": "AmZmZmZ3d0iImZmqqqqqqqoEWJlnOFFTZmWOU6cIDgg2WBjqwDfDNdtcW9RMZxRUhLv6EpHRZcemwZS01B1fCasbZLFFV9QKgkBVD0sVc6G-ZHc3woH2lV1RK8xjK5xp2suKOk-X1v__7T24hKlEa58igeorlLY"
+    }
+  ],
+  "lease_aad": "bobik/lease-dek/v1|interview=3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b",
+  "rsa_lease_key": {
+    "private_key_pkcs8_der": "MIIG_QIBADANBgkqhkiG9w0BAQEFAASCBucwggbjAgEAAoIBgQCjzrVB8Yv50_vbVyxqMh-OllPX1uSjINaF49Oe-J_sdIQRT78-GmzGP2W7wWah19gd55VKO3A1IRqWtIhBM-FyBVipzieXIDXP8vYNeb5uKadpvm_cgApXK1yJx6VSVmEpyhzWek3uYarbkHI4g1y32FM4lKCupoA5T3zcxfBQwQOrwLcJNlHNu7WGEe_QvNNsuE9GYZzVPj-A60UdTLMrb7pnyfflFhhC9CX648Y-N9lzhZqu7oYY2N9o8n_KeFnMUNZwBrdTK4w8rWlmVJ6VEbfiroVEU_01rJLzS4ETWCjnkwoO-mSJ7aprbxozZ1e8fksWI_pq4YqT_d_v_S1zy2D-lXKEgGbcXPPj2lOBFRBDwjyVdnSz-8gZAjx5ntfO7pBugex5wIcO4hnZud1Y83GFnV9UHeblTiWftcmlA7V8Yrq7NjlCbYyELJNsSIdnz-uNzNbQCOuGrNcRuoQC7Po7JVbnMSHf66wSAa1zL41ESl7KmHUpOynNh1AuBb0CAwEAAQKCAYAMgjHkLbpHIxFl7_Ozzk0Lmd4gKsg9zrmi8sFLr-eiaklVexX6-5CX2Op_Wmbob--QZQlI6F4KqJL7tCB9fiU2jEL3gIcUasDBNufkIopQpjyi_ghTubFQc762xLiSn4b-5nCqTh-aVvnxl0epmhpf7ZR5Sxw0CgHbnn7F6xWNTRfnKymu-edoQu-7I66A7ZJliHOBR93uiLjXst-Nu7go1njRCSK1aykCH9uwm2kdgi1IPYkQ16UEy7bPsEji4Kq3gQFcTtWf_HVijuvukHTu0MbZ7qAtEdX0YaVW1ULX64mIjU2KT7rEm3KN9AiCrq0KyNAZU62CSmdH5FK1fwV5ZW0DL1_juVess_Ao0ycaGWnjsxJrJlth0JY9OhO5Zl5A4Gixw2GWtjeLa23YPanzqLdPjjo0X1OATBXEPjXdXlfaOmDBKw61v7KmpK7EvJIZgrH2OI8O2r4ApEoj6WZH9OeqS7pCA5dc2loppkptk1E-1NnS23M7xg53IwjSmsECgcEAzxj3vcHTthD1CItdTVGpTudZy-XFNYHgRRaVHHAuJcUkNEbpwbxdg-bin1A8x4LRsuP87Fpd7vkgu6bEzw7DBL7uY-u10UoAw3t5fDDRWEcBjAPKHMgFD6v0IV-90i8wTZfKotEff8-P5h9neAGrS5b6YtrPb61E1r5WeAWsNFFhn4Mb2UEo4Kv5dg_nhbxs5s-yuY3xNEjCFo-Pk87Z2J5ne6RDGFtgF2_4uhUYxhO2B_5JRI7XGnYWdmHUbkyhAoHBAMp826L9Wo5KYAH1-obr6dPGRrn9-GtoqGzvoKnWC8oHRKNlmJwot75Fo_GJAuF15EPf4XQz0La9SXmflgJ7oLZcw5nMmD9wcCwVVGjftbWun7vC8VJndVYziX8mp0wLfK1Fm1rKO1YUWdQGfOQ9CFHSeqbJU6C8cx3nTgaRIsGWAKg_-FKvRUjzgX3q4KuGGe_jOBd2AEOY1PACiXHSE-71dPDL6bIlNJNSwEJ-Nk3Sax0wz6L6CVDsMjOyXQynnQKBwQCLzU4Ich0KDf5ryzCr7lF9611J8I0lZsxPt0Pnk68DXkbnZ2uLli4Gycj4RQESqbQHsDJgF0zL8q9vHdBD-rIZtQ5Ws5rkcrF7RRIojQf1MNHRhAlfToNkJe9CzE_m4GYaKzrmmIdMD4ETluWRNIc_Gudh7lYUDIKo-IqEsUejdcCSHr6g9YSzzkQzt97R__YABfufmTtX0Tn8YuNIo12aBqzS4XtNqPmAON1OOMmlhU7frIAnYMnCmi7lsXrnDqECgcBxX1NCgQQw4ye6MVViMbisIDn9bVuoF-Mli02zierz5PnjWsEFvi6S1D8kv4fjYLS75CBBhbl4d6cp99Zv8XRcZrgF5u3fpz7HD_JA_fCplupMoKupbc_eweBcVvIYu93EzlJblRt_6Mka078ds6Zy2Zxewh6WwqzZs2aWerCxHyGjEp4g_Y2XeO-p5taAcwcWr2v6htFDB9FByMnX9r2-b6RYJnPkkLxNOGn5UN1q2UOsBmZbZA_PRVAebeF3cmkCgcA9JtRmIG6C5DLEoq1atnicdeUHtsvCkerBxAwCNfYjpYorU0iDiuRsHTu2vbadxiuciRvChcQlMvxzgptbPzQ9k456gTUqf2_rUX0NSDCiBoa_v121nVyrnxwE-lyahnliel7oEsbVQ4UcF1j9yr6y5aeCLBpnUs_801Fk7b81WuTxYJc_apZnjJsQ-FoKc2V1nrRle4ODzuMP5iTeddbmrkX5EfM7hE9T8Xq3IoP6fEscALfvcUlPSTLwtqmRSmE",
+    "public_key_spki_der": "MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAo861QfGL-dP721csajIfjpZT19bkoyDWhePTnvif7HSEEU-_Phpsxj9lu8FmodfYHeeVSjtwNSEalrSIQTPhcgVYqc4nlyA1z_L2DXm-bimnab5v3IAKVytcicelUlZhKcoc1npN7mGq25ByOINct9hTOJSgrqaAOU983MXwUMEDq8C3CTZRzbu1hhHv0LzTbLhPRmGc1T4_gOtFHUyzK2-6Z8n35RYYQvQl-uPGPjfZc4Waru6GGNjfaPJ_ynhZzFDWcAa3UyuMPK1pZlSelRG34q6FRFP9NayS80uBE1go55MKDvpkie2qa28aM2dXvH5LFiP6auGKk_3f7_0tc8tg_pVyhIBm3Fzz49pTgRUQQ8I8lXZ0s_vIGQI8eZ7Xzu6QboHsecCHDuIZ2bndWPNxhZ1fVB3m5U4ln7XJpQO1fGK6uzY5Qm2MhCyTbEiHZ8_rjczW0AjrhqzXEbqEAuz6OyVW5zEh3-usEgGtcy-NREpeyph1KTspzYdQLgW9AgMBAAE",
+    "fingerprint": "4MR2 EHPY FGHB YBWR P3M7 JUWE DMV7 7OUS"
+  },
+  "negative": [
+    {
+      "kind": "sealed",
+      "case": "inne_pole",
+      "interview_id": "3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b",
+      "field": "interviews.Interview.age",
+      "blob": "AREREREiIkMzhERVVVVVVVXLGMZrb4KN3_R42oA-w_JCH5UimXltF2BUwk5coXeCyabge9pGFQ",
+      "error": "decrypt_failed"
+    },
+    {
+      "kind": "sealed",
+      "case": "inny_wywiad",
+      "interview_id": "3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b",
+      "field": "interviews.Interview.first_name",
+      "blob": "AREREREiIkMzhERVVVVVVVVkQAyhHX_Y9YSuvcZqGYvyosTOOvDeY0JnVXq93Jh8qtVmwQ_8Og",
+      "error": "decrypt_failed"
+    },
+    {
+      "kind": "sealed",
+      "case": "inny_klucz_wywiadu",
+      "interview_id": "3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b",
+      "field": "interviews.Interview.first_name",
+      "blob": "AZmZmZmIiEd3hmZVVVVVVVWiddoPO1ih5s9Oob8PZhZ5qZS-lu0h19b4Drag9SuWAKtx6Uq1tg",
+      "error": "key_mismatch"
+    },
+    {
+      "kind": "stc",
+      "case": "inna_klinika",
+      "clinic_id": 3,
+      "field": "core.WithdrawalLog.reason",
+      "blob": "AmZmZmZ3d0iImZmqqqqqqqoELQQadY-HGgHpfAFoQOc677RjR_bd2jqezd3fhRTPAD96OIweO4QAp2h9FXLJWuv62Z0EV78ZYQjY7jVSSq1dO5gm9dwZUMLtIGgjPW3gxPY0J00f7E4mUcnJ6JAwVw79Mzz3iJk",
+      "error": "decrypt_failed"
+    }
+  ]
+}

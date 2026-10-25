@@ -11,7 +11,18 @@
 </head>
 <body>
 <main id="vault">
-  <p id="status">Sejf zablokowany</p>
+  <p id="status" role="status">Sejf zablokowany</p>
+  <p id="fingerprint" hidden></p>
+  <p id="counter" hidden></p>
+  <section id="prompt" hidden aria-labelledby="prompt-title">
+    <h2 id="prompt-title"></h2>
+    <div id="prompt-lines"></div>
+    <div class="actions">
+      <button id="prompt-ok" type="button"></button>
+      <button id="prompt-cancel" type="button"></button>
+    </div>
+  </section>
+  <button id="lock" type="button" hidden>Zablokuj</button>
 </main>
 </body>
 </html>

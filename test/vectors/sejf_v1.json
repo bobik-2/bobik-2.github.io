@@ -1,0 +1,30 @@
+{
+  "format": "sejf_v1",
+  "note": "Wektory formatów sejfu dla bobik-2 (spec B, „Wektory krzyżowe”). Klucze wyłącznie testowe. Bajty: base64url bez paddingu (F8). credentials: F1/F3 — wrap klucza lekarza pod KEK z HKDF(prf_output); prf_output to podstawiony wynik PRF (tylko do testów sejfu). clinic_grant: F4 klucza kliniki z bobik2_v1.json dla klucza lekarza z tego pliku. rsa_wrapped_dek: F6 DEK-u z bobik2_v1.json pod rsa_lease_key z bobik2_v1.json. clinic_fingerprint: F7 SPKI kliniki z bobik2_v1.json policzone w sejfie.",
+  "doctor": {
+    "doctor_id": 17,
+    "public_key_spki_der": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEat5Y_7gwDPRwrOvwNFuOcv4EM8gUCUt3KePAxYgiO4Ofk98bM3wLux6B8ASrnUbvhDskF7byFA4hDTSUnlqnMA",
+    "fingerprint": "YPVC NZHE BQCB PHCD PIUP HHEF GDEL 2CMJ"
+  },
+  "credentials": [
+    {
+      "credential_id": "F5O4tmRSUxXgcxj2z_y6NQ",
+      "prf_salt": "ZJWe1wkTuQbWYVQnX15lzbSg4ZSlx6hwMTVlVIy2jGw",
+      "wrapped_private": "ARASwyJRziVXkao0X27yzFrVmQ1Ybm5Sn5W-ns3tPM03E79sVBoaAUvjIdLYBjBK_rFf0eexSs_bKuKTrGJ-g1dR2NPt63Gn9iXZBbZmYi34FZx-J-IJk_To1aquXxDFTDTjMKb8hvo-JXkLtzf3L3Qq19bFsYef3sfbWI_eoNVDPC9KXaZqlFro4NbzVV2pWXVtZ1l-xKab8AUY8uhGf29wdlPaC2Q",
+      "prf_output": "YcqLW1xqXv6xTF4NAgrsprL6qVsqdOLWggqkR5soPAs"
+    },
+    {
+      "credential_id": "umJ34z-mMmPkjG8hqYv1Ka5zT3e4-KnLY64fRR5qxMs",
+      "prf_salt": "B_xw1jcClruPQoHzySpY4ky4xxZDQrvCwTUXSnmb59A",
+      "wrapped_private": "AeLUyBhOVXpP7OEwj4W019oUQTilEcnWc9BqrxTqHuGlIT3B_bZ-icP1X0LFfYIr95dsW1FIeqv1BNS8hkpEN1Wt0nLhB-LHEzmabSBBRCGynFKo6iPTtqkArGz243YSIlHnpJmbLdc1Fx6mgH4rZpnDWuG3MPCzgyo7LnU98WxA3SdJUzNZ-dqzDZgeQXMm43-vpUymEGKvAgBuznhV6VxiISygKjE",
+      "prf_output": "sNYBJHRUXYpybhLiuq2HG85W_6nuhL68S6hdzqIktxo"
+    }
+  ],
+  "clinic_grant": {
+    "clinic_id": 3,
+    "doctor_id": 17,
+    "wrapped_private": "AQQeA-1zIB0VXfZQKDGBefgZvIDxo3abU0FYYNRKY7Yt8vEmpEEE1lFfIq7utfcIS_yKzjXHozuzHy_juErD4q2R24uGBpMmSSxpKZmH1fNS9fIjRixVxx8MD03qyIVQWxqLnOnBGmJxd81OXiymhP86QCkZmHbcEMgM00ZaqhBYjYY_LXlgs5CtPeYcavCk71IDO7TrTd13l5SKbXjIUogqLk4V0vGr13TpAZcsnHLK0GqgdJvDijOEqjX6T6W0Y8nq2RGEzGXYnkTl7qN2w2gQG5Go2aCKKR4KqA"
+  },
+  "rsa_wrapped_dek": "lEU5oE2OPJ3v4G_hS0b82PfoS9HvWDptQeoq6dsrxQH-wSrU-wDo3UEVipSN85HjDgIKWvVvTUmDFYUN1GVQjZa6B0shmyMoBsvh6TDK7PN3QH-_qbKTFLr6AojOPh5MWiOGB5ApKZbF2TvFEOvpAq_Ia4nFBA9A5H3h-pqfHfRzvbtW-yN3X4CTFIWC3Ugxxsc1ML-daPVO7ubnpv2IeDDLhk_Nt8Ij5w9CEftkfeWSe3ul3-p77Ux1dwBCqjP3_t01W32m3i1xeuth4A0nopzMh61_-ow6P7NsNbhuwV6G432RhBpxiedXXMcemvwUB_v2OVkWfV3Hb8FRoeCDIz6_YCPrt-k1HSz0FY48ivzNbA-huOIFfmLt5C6tOjM9yKYugAPFZR7OfVn5MEi9XRKdpOFBlUGwHEhbqgKJEL3v3zPzDQoWFzWgUcsl9dvEd_kHB1BfQ2B-nAECXE0BZ00M0_jQZzDmp8L0E8r5TrzBPMD1LRjKP4mBw19tPPMB",
+  "clinic_fingerprint": "HNYV F5ML G4HP 7GT5 D4A4 P3IW FGVR D7MI"
+}
