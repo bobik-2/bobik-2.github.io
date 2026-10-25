@@ -112,3 +112,15 @@ it("vault.css: wiersz od panelu w jednej linii (bez zawijania), wiersz związany
   expect(css).toMatch(/#prompt-lines p\.untrusted \{[^}]*text-overflow: ellipsis;[^}]*\}/);
   expect(css).toMatch(/#prompt-lines p\.bound \{[^}]*font-family: ui-monospace[^}]*\}/);
 });
+
+// Końcowy przegląd, M-5: potwierdzenie grantu każe porównać numer lekarza z tym, co odbiorca odczyta
+// ze swojego sejfu — sejf pokazuje więc numer (związany przez AAD wrapu) obok odcisku.
+it("po odblokowaniu: numer lekarza i odcisk; zablokowany: nic", () => {
+  const t = setup();
+  t.ui.render({ state: "unlocked", refusal: null, doctorId: 17, fingerprint: "AAAA BBBB", counters: null });
+  expect(t.nodes.fingerprint.hidden).toBe(false);
+  expect(t.nodes.fingerprint.textContent).toBe("Lekarz nr 17 · odcisk Twojego klucza: AAAA BBBB");
+  t.ui.render({ state: "locked", refusal: null, doctorId: null, fingerprint: null, counters: null });
+  expect(t.nodes.fingerprint.hidden).toBe(true);
+  expect(t.nodes.fingerprint.textContent).toBe("");
+});

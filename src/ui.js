@@ -81,7 +81,7 @@ export function createUi(doc, { timers = globalThis } = {}) {
     render(view) {
       status.textContent = statusText(view);
       fingerprint.hidden = !view.fingerprint;
-      fingerprint.textContent = view.fingerprint ? `Odcisk Twojego klucza: ${view.fingerprint}` : "";
+      fingerprint.textContent = view.fingerprint ? `Lekarz nr ${view.doctorId} · odcisk Twojego klucza: ${view.fingerprint}` : "";
       counter.hidden = !view.counters;
       counter.textContent = view.counters ? formatCounters(view.counters) : "";
       lock.hidden = view.state !== "unlocked";

@@ -108,7 +108,7 @@ describe("unlock", () => {
     expect((await t.call("hello")).result.state).toBe("unlocked");
     expect(t.vault.keys()).toHaveLength(1);
     expect(t.vault.keys().every((k) => k.extractable === false)).toBe(true);
-    expect(t.vault.view()).toMatchObject({ state: "unlocked", fingerprint: reg.fingerprint, counters: { interviews: 0, stc: 0 } });
+    expect(t.vault.view()).toMatchObject({ state: "unlocked", doctorId: 17, fingerprint: reg.fingerprint, counters: { interviews: 0, stc: 0 } }); // M-5
     expect(t.events).toEqual([]);
   });
 

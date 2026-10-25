@@ -24,6 +24,9 @@ export function createVault({ version = VERSION, ready, browserOk, prf, credenti
   const view = () => ({
     state,
     refusal,
+    // Numer lekarza związany przez AAD wrapu (odblokowanie się udało) — odbiorca grantu podaje go
+    // nadającemu razem z odciskiem (końcowy przegląd, M-5).
+    doctorId: session.doctor?.doctorId ?? null,
     fingerprint: session.doctor?.fingerprint ?? null,
     counters: state === "unlocked" ? limiter.snapshot() : null,
   });
