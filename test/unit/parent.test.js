@@ -44,10 +44,12 @@ describe("filtr rodzica (rozstrzygnięcie 9, P6, V-3, Review Focus 4)", () => {
     expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL])).toBe(true);
   });
 
-  it('ancestorOrigins zamaskowane ("null", referrerpolicy=no-referrer) -> rozstrzyga event.origin', () => {
+  // Fail-closed: „null” w ancestorOrigins to przodek, którego originu nie znamy (zamaskowany np. przez
+  // referrerpolicy obcej strony osadzającej panel). Zad. 9 zmierzyło, że iframe B2 z no-referrer
+  // NIE maskuje rodzica w Chromium, więc odrzucenie nie blokuje prawidłowego osadzenia.
+  it('ancestorOrigins[0] === "null" -> odrzucone (fail-closed)', () => {
     const w = win({ ancestors: ["null"] });
-    expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL])).toBe(true);
-    expect(acceptMessage({ source: w.parent, origin: "https://evil.example" }, w, [PANEL])).toBe(false);
+    expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL])).toBe(false);
   });
 
   // Przegląd 9–10, L-3: dozwolony panel osadzony w obcej stronie ([1] obcy) nie przechodzi.
@@ -56,11 +58,14 @@ describe("filtr rodzica (rozstrzygnięcie 9, P6, V-3, Review Focus 4)", () => {
     expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL])).toBe(false);
   });
 
-  it("wszyscy przodkowie z listy -> przyjęte; zamaskowany \"null\" w dalszym przodku pomijany", () => {
+  it("wszyscy przodkowie z listy -> przyjęte", () => {
     const w = win({ ancestors: [PANEL, DEV] });
     expect(acceptMessage({ source: w.parent, origin: PANEL }, w, [PANEL, DEV])).toBe(true);
+  });
+
+  it('"null" w dalszym przodku (obca strona osadza panel z no-referrer) -> odrzucone', () => {
     const masked = win({ ancestors: [PANEL, "null"] });
-    expect(acceptMessage({ source: masked.parent, origin: PANEL }, masked, [PANEL])).toBe(true);
+    expect(acceptMessage({ source: masked.parent, origin: PANEL }, masked, [PANEL])).toBe(false);
   });
 
   it("zamaskowany rodzic, obcy dalszy przodek -> odrzucone", () => {

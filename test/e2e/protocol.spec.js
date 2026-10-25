@@ -42,6 +42,7 @@ test("Chromium: ancestorOrigins w iframe z referrerpolicy=no-referrer nie blokuj
   await openPanel(page);
   const ancestors = await vaultFrameHandle(page).evaluate(() => Array.from(location.ancestorOrigins));
   console.log(`ancestorOrigins w ramce sejfu: ${JSON.stringify(ancestors)}`);
-  expect([["http://127.0.0.1:8000"], ["null"]]).toContainEqual(ancestors);
+  // Filtr odrzuca "null" (fail-closed), więc osadzenie jak w B2 musi dawać niezamaskowany origin.
+  expect(ancestors).toEqual(["http://127.0.0.1:8000"]);
   expect(await call(page, "hello")).toMatchObject({ ok: true });
 });
