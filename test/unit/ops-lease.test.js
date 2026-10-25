@@ -54,6 +54,9 @@ describe("grant_lease (F6, rozstrzygnięcie 2)", () => {
     ["brak klucza session_seq", { session_seq: undefined }],
     ["nieznany rodzaj", { kind: "interview" }],
     ["pusty study_code", { study_code: "" }],
+    ["study_code ze znakiem nowej linii (M-2)", { study_code: "BOB-1\nRodzaj: dopisek" }],
+    ["study_code z U+202E (M-2)", { study_code: "BOB-\u202e1" }],
+    ["study_code dłuższy niż 64 znaki", { study_code: "B".repeat(65) }],
     ["zły interview_id", { interview_id: "42" }],
   ])("%s -> bad_args", async (_name, over) => {
     const t = await ready();

@@ -6,7 +6,7 @@ import { importP256Pair, importP256Public } from "../crypto/keys.js";
 import { VaultError } from "../errors.js";
 import { fingerprint } from "../fingerprint.js";
 import { PROMPTS } from "../prompts.js";
-import { bytes, posInt, text, uuid } from "../validate.js";
+import { bytes, label, posInt, uuid } from "../validate.js";
 
 export const loadClinicKey = {
   needs: "unlocked",
@@ -33,7 +33,7 @@ export const loadClinicKey = {
 export const createClinicKey = {
   needs: "unlocked",
   interactive: true,
-  parse: (req) => ({ clinicId: posInt(req.clinic_id), label: text(req.clinic_label, 200) }),
+  parse: (req) => ({ clinicId: posInt(req.clinic_id), label: label(req.clinic_label) }),
   async run(ctx, { clinicId, label }) {
     const doctor = ctx.session.doctor;
     await ctx.ask(PROMPTS.createClinic(label));
@@ -59,7 +59,7 @@ export const grantClinicAccess = {
   parse: (req) => ({
     clinicKeyId: uuid(req.clinic_key_id),
     recipientId: posInt(req.recipient_doctor_id),
-    label: text(req.recipient_label, 200),
+    label: label(req.recipient_label),
     recipientSpki: bytes(req.recipient_public_key_der, { max: 1024 }),
   }),
   async run(ctx, { clinicKeyId, recipientId, label, recipientSpki }) {

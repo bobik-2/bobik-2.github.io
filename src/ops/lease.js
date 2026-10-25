@@ -5,7 +5,7 @@ import { CLINIC_WRAP_LEN, openClinicWrap } from "../crypto/fields.js";
 import { importLeaseKey, wrapDekForLease } from "../crypto/lease.js";
 import { VaultError } from "../errors.js";
 import { PROMPTS } from "../prompts.js";
-import { bytes, oneOf, optPosInt, text, uuid } from "../validate.js";
+import { bytes, label, oneOf, optPosInt, uuid } from "../validate.js";
 
 export const grantLease = {
   needs: "unlocked",
@@ -22,7 +22,7 @@ export const grantLease = {
       clinicKeyId: uuid(req.clinic_key_id),
       // Dokładna długość już tu: inaczej lekarz zatwierdzałby coś, co nie może się udać (L1).
       clinicWrap: bytes(req.clinic_wrap, { min: CLINIC_WRAP_LEN, max: CLINIC_WRAP_LEN }),
-      studyCode: text(req.study_code, 64),
+      studyCode: label(req.study_code, 64),
       kind,
       sessionSeq,
       agentRunId,

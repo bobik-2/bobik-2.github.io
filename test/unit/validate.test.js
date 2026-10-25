@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bytes, field, list, oneOf, optPosInt, posInt, text, uuid } from "../../src/validate.js";
+import { bytes, field, label, LABEL_MAX, list, oneOf, optPosInt, posInt, uuid } from "../../src/validate.js";
 
 const bad = expect.objectContaining({ code: "bad_args" });
 
@@ -25,9 +25,37 @@ describe("walidatory bad_args (spec B, „Walidacja argumentów”)", () => {
     for (const v of ["Interviews.Interview.age", "interviews.Interview", "interviews.Interview.Age", "a.b.c|x", 1]) expect(() => field(v)).toThrow(bad);
   });
 
-  it("text: 1..max znaków", () => {
-    expect(text("a", 3)).toBe("a");
-    for (const v of ["", "abcd", 5, null]) expect(() => text(v, 3)).toThrow(bad);
+  it("label: 1..max znaków", () => {
+    expect(label("a", 3)).toBe("a");
+    for (const v of ["", "abcd", 5, null]) expect(() => label(v, 3)).toThrow(bad);
+  });
+
+  // Przegląd 9–10, M-2: etykieta od panelu nie może podrobić osobnego wiersza potwierdzenia
+  // (np. „Odcisk klucza odbiorcy: …”) ani odwrócić kolejności znaków.
+  it("label: domyślnie maks. 80 znaków, polskie litery i interpunkcja przechodzą", () => {
+    expect(LABEL_MAX).toBe(80);
+    const name = "dr hab. n. med. Żaneta Łęcka-Ślązak (Klinika Anestezjologii, OIT) — I piętro";
+    expect(name.length).toBeLessThanOrEqual(80);
+    expect(label(name)).toBe(name);
+    expect(label("x".repeat(80))).toBe("x".repeat(80));
+    expect(() => label("x".repeat(81))).toThrow(bad);
+  });
+
+  it.each([
+    ["nowa linia", "dr V\nOdcisk klucza odbiorcy: AAAA"],
+    ["CR", "dr V\r"],
+    ["tabulator", "dr\tV"],
+    ["NUL", "dr\u0000V"],
+    ["DEL", "dr\u007fV"],
+    ["U+0085 (NEL)", "dr\u0085V"],
+    ["U+2028 (separator wierszy)", "dr V\u2028Odcisk klucza odbiorcy: AAAA"],
+    ["U+2029 (separator akapitów)", "dr V\u2029x"],
+    ["U+202E (bidi RLO)", "dr \u202eV"],
+    ["U+2066 (bidi LRI)", "dr \u2066V"],
+    ["U+200B (spacja zerowej szerokości)", "dr\u200bV"],
+    ["U+FEFF (BOM)", "\ufeffdr V"],
+  ])("label: %s -> bad_args", (_name, v) => {
+    expect(() => label(v)).toThrow(bad);
   });
 
   it("oneOf", () => {

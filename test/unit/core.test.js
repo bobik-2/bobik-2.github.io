@@ -34,6 +34,8 @@ describe("koperta i walidacja (V-2)", () => {
     ["register", { doctor_id: 0, display_name: "dr A" }],
     ["register", { doctor_id: "17", display_name: "dr A" }],
     ["register", { doctor_id: 17, display_name: "" }],
+    ["register", { doctor_id: 17, display_name: "dr A\u2028Lekarz: dr B" }],
+    ["register", { doctor_id: 17, display_name: "d".repeat(81) }],
     ["unlock", { doctor_id: 17, public_key_der: "AAAA", credentials: [] }],
     ["unlock", { doctor_id: 17, public_key_der: "A+AA", credentials: [{ credential_id: "AQ", prf_salt: SALT, wrapped_private: WRAP }] }],
     ["unlock", { doctor_id: 17, public_key_der: "AAAA", credentials: [{ credential_id: "AQ", prf_salt: "AQ", wrapped_private: WRAP }] }],

@@ -24,8 +24,15 @@ export function field(v) {
   return v;
 }
 
-export function text(v, max) {
-  if (typeof v !== "string" || v.length < 1 || v.length > max) throw bad();
+// Etykiety od panelu (display_name, clinic_label, recipient_label, study_code) są nieuwierzytelnione
+// (B-R8) i stoją w potwierdzeniu obok odcisku. Znaki sterujące, formatujące (bidi, zero-width) i
+// separatory wierszy/akapitów pozwoliłyby podrobić osobny wiersz, np. „Odcisk klucza odbiorcy: …”
+// (przegląd 9–10, M-2), a długość ponad LABEL_MAX — zepchnąć prawdziwe wiersze poza ramkę.
+export const LABEL_MAX = 80;
+const LABEL_FORBIDDEN = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
+
+export function label(v, max = LABEL_MAX) {
+  if (typeof v !== "string" || v.length < 1 || v.length > max || LABEL_FORBIDDEN.test(v)) throw bad();
   return v;
 }
 

@@ -83,8 +83,9 @@ describe("grant_clinic_access (F4, D5, B-D4)", () => {
     });
     const prompt = a.ui.prompts.at(-1);
     expect(prompt.kind).toBe("grant_access");
-    expect(prompt.lines.join("\n")).toContain(regB.fingerprint);
-    expect(prompt.lines.join("\n")).toContain("dr Piotr Zieliński");
+    // M-2: odcisk w pierwszym wierszu, etykieta oznaczona jako niezweryfikowana.
+    expect(prompt.lines[0]).toBe(`Odcisk klucza odbiorcy: ${regB.fingerprint}`);
+    expect(prompt.lines[1]).toContain("nazwa z panelu (niezweryfikowana): dr Piotr Zieliński");
     expect(granted.recipient_fingerprint).toBe(regB.fingerprint);
     await unlockDoctor(b, regB, { doctor_id: 18 });
     const loaded = await b.ok("load_clinic_key", {
@@ -94,6 +95,28 @@ describe("grant_clinic_access (F4, D5, B-D4)", () => {
       wrapped_private: granted.wrapped_private,
     });
     expect(loaded).toEqual({ clinic_key_id: BOBIK2.clinic_key_id, fingerprint: BOBIK2.clinic.fingerprint });
+  });
+
+  it.each([
+    ["podrobiony wiersz odcisku po U+2028", "dr V\u2028Odcisk klucza odbiorcy: AAAA BBBB"],
+    ["podrobiony wiersz odcisku po \\n", "dr V\nOdcisk klucza odbiorcy: AAAA BBBB"],
+    ["odwrócenie bidi", "dr \u202eV"],
+    ["81 znaków", "x".repeat(81)],
+  ])("etykieta odbiorcy: %s -> bad_args, bez pytania (M-2)", async (_name, recipientLabel) => {
+    const t = makeVault();
+    const S = await unlockFromVector(t);
+    await loadBobik2Clinic(t, S);
+    const asked = t.ui.prompts.length;
+    const args = { clinic_key_id: BOBIK2.clinic_key_id, recipient_doctor_id: 18, recipient_label: recipientLabel, recipient_public_key_der: S.doctor.public_key_spki_der };
+    expect(await t.call("grant_clinic_access", args)).toMatchObject({ ok: false, error: "bad_args" });
+    expect(t.ui.prompts).toHaveLength(asked);
+  });
+
+  it("etykieta kliniki ze znakiem sterującym albo > 80 znaków -> bad_args (M-2)", async () => {
+    const t = makeVault();
+    await unlockFromVector(t);
+    expect(await t.call("create_clinic_key", { clinic_id: 5, clinic_label: "Klinika\nOdcisk" })).toMatchObject({ ok: false, error: "bad_args" });
+    expect(await t.call("create_clinic_key", { clinic_id: 5, clinic_label: "K".repeat(81) })).toMatchObject({ ok: false, error: "bad_args" });
   });
 
   it("niezaładowany klucz kliniki -> clinic_key_not_loaded; zły klucz odbiorcy -> bad_key", async () => {

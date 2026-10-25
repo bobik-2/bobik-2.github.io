@@ -9,7 +9,7 @@ import { importP256Public } from "../crypto/keys.js";
 import { VaultError } from "../errors.js";
 import { fingerprint } from "../fingerprint.js";
 import { PROMPTS } from "../prompts.js";
-import { bytes, list, posInt, text } from "../validate.js";
+import { bytes, label, list, posInt } from "../validate.js";
 import { evaluatePrf, registerCredential } from "../webauthn.js";
 
 export const RP_NAME = "Sejf kluczy bobik";
@@ -76,7 +76,7 @@ export const register = {
   needs: "ready",
   interactive: true,
   bindsEpoch: true, // blokada w trakcie rejestracji -> locked zamiast wyniku (P3, przegląd 5–8 L3)
-  parse: (req) => ({ doctorId: posInt(req.doctor_id), displayName: text(req.display_name, 200) }),
+  parse: (req) => ({ doctorId: posInt(req.doctor_id), displayName: label(req.display_name) }),
   async run(ctx, { doctorId, displayName }) {
     const enrolled = [];
     try {

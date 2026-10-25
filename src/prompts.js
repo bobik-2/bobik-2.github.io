@@ -63,10 +63,11 @@ export const PROMPTS = {
   grantAccess: (label, fingerprint) => ({
     kind: "grant_access",
     title: "Nadanie dostępu do kliniki",
+    // Odcisk (liczony w sejfie) zawsze w pierwszym wierszu, przed nieuwierzytelnioną etykietą (M-2).
     lines: [
-      `Odbiorca: ${label}`,
       `Odcisk klucza odbiorcy: ${fingerprint}`,
-      "Porównaj go z odciskiem, który odbiorca odczytał ze swojego sejfu — przez telefon albo osobiście, nie przez panel.",
+      `Odbiorca — nazwa z panelu (niezweryfikowana): ${label}`,
+      "Porównaj odcisk z tym, który odbiorca odczytał ze swojego sejfu — przez telefon albo osobiście, nie przez panel.",
     ],
     confirm: "Odcisk zgodny — nadaj dostęp",
     cancel: "Odcisk niezgodny — anuluj",
