@@ -26,6 +26,13 @@ it("nadanie dostępu: odcisk w pierwszym wierszu, potem numer lekarza (kontekst 
   expect(p.confirm).toBe("Odcisk zgodny — nadaj dostęp");
 });
 
+it("wiersze związane kryptograficznie (`bound`) i etykiety z panelu (`untrusted`) są oznaczone", () => {
+  expect(PROMPTS.grantAccess("dr P", "X", 18)).toMatchObject({ bound: [0], untrusted: [1] });
+  expect(PROMPTS.createClinic("K", 5)).toMatchObject({ bound: [], untrusted: [0] });
+  expect(PROMPTS.grantLease({ kind: "addendum", interviewId: IV, studyCode: "S", sessionSeq: null, agentRunId: null })).toMatchObject({ bound: [0], untrusted: [1] });
+  expect(PROMPTS.registerKey(1, "dr A")).toMatchObject({ untrusted: [0] });
+});
+
 it("klucz kliniki: numer kliniki (kontekst grantu) i etykieta z panelu", () => {
   const p = PROMPTS.createClinic("Klinika Testowa", 5);
   expect(p.lines[0]).toBe("Klinika nr 5 — nazwa z panelu (niezweryfikowana): Klinika Testowa");

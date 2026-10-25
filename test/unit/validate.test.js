@@ -58,6 +58,35 @@ describe("walidatory bad_args (spec B, „Walidacja argumentów”)", () => {
     expect(() => label(v)).toThrow(bad);
   });
 
+  // Dalsze obejścia (automatyczny przegląd bezpieczeństwa M-2): rozdzielanie i przesuwanie tekstu,
+  // znaki niewidoczne albo nieprzewidywalne w renderowaniu.
+  it.each([
+    ["nieparowany surogat wysoki", "dr \ud800V"],
+    ["nieparowany surogat niski", "dr \udc00V"],
+    ["znak prywatny U+E000", "dr \ue000V"],
+    ["znak nieprzypisany U+0378", "dr \u0378V"],
+    ["twarda spacja U+00A0", "dr\u00a0V"],
+    ["spacja ideograficzna U+3000", "dr\u3000V"],
+    ["spacja em U+2003", "dr\u2003V"],
+    ["dwie spacje z rzędu", "dr  V"],
+    ["długi ciąg spacji (przesunięcie do nowej linii przy zawijaniu)", `dr V${" ".repeat(40)}Odcisk`],
+    ["spacja na początku", " dr V"],
+    ["spacja na końcu", "dr V "],
+    ["forma nieznormalizowana NFD (e + U+0301)", "Rene\u0301"],
+    ["stos znaków łączących (zalgo)", "V\u0301\u0301\u0301"],
+  ])("label: %s -> bad_args", (_name, v) => {
+    expect(() => label(v)).toThrow(bad);
+  });
+
+  it("label: emoji (para surogatów), NFC z polskimi znakami, pojedyncza spacja przechodzą", () => {
+    for (const v of ["Klinika 🏥", "Łódź Śródmieście", "René", "dr V"]) expect(label(v)).toBe(v);
+  });
+
+  it("label: limit liczony w jednostkach UTF-16 (nie mniej niż w code pointach)", () => {
+    expect(() => label("🏥".repeat(41))).toThrow(bad); // 41 code pointów = 82 jednostki UTF-16
+    expect(label("🏥".repeat(40))).toBe("🏥".repeat(40));
+  });
+
   it("oneOf", () => {
     expect(oneOf("repair", ["addendum", "repair"])).toBe("repair");
     expect(() => oneOf("x", ["a"])).toThrow(bad);

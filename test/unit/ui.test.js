@@ -14,6 +14,7 @@ function fakeDoc() {
       hidden: false,
       disabled: false,
       textContent: "",
+      className: "",
       children: [],
       addEventListener(type, fn) {
         (listeners[type] ??= []).push(fn);
@@ -94,4 +95,20 @@ describe("potwierdzenia w sejfie (przegląd 9–10, M-1: clickjacking)", () => {
     expect(t.ok.disabled).toBe(true);
     expect(t.timers.pending.size).toBe(1);
   });
+});
+
+describe("wiersze potwierdzenia: związane vs od panelu (automatyczny przegląd bezpieczeństwa M-2)", () => {
+  it("wiersze `bound` i `untrusted` dostają osobne klasy; etykieta nie zawija się (CSS nowrap)", () => {
+    const t = setup();
+    t.ui.ask({ ...SPEC, lines: ["Odcisk klucza odbiorcy: AAAA", "Odbiorca: …", "Porównaj…"], bound: [0], untrusted: [1] });
+    expect(t.nodes["prompt-lines"].children.map((p) => p.className)).toEqual(["bound", "untrusted", ""]);
+  });
+});
+
+it("vault.css: wiersz od panelu w jednej linii (bez zawijania), wiersz związany wyróżniony", async () => {
+  const { readFileSync } = await import("node:fs");
+  const css = readFileSync(new URL("../../src/vault.css", import.meta.url), "utf8").replace(/\s+/g, " ");
+  expect(css).toMatch(/#prompt-lines p\.untrusted \{[^}]*white-space: nowrap;[^}]*\}/);
+  expect(css).toMatch(/#prompt-lines p\.untrusted \{[^}]*text-overflow: ellipsis;[^}]*\}/);
+  expect(css).toMatch(/#prompt-lines p\.bound \{[^}]*font-family: ui-monospace[^}]*\}/);
 });

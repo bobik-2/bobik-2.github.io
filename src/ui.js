@@ -48,10 +48,16 @@ export function createUi(doc, { timers = globalThis } = {}) {
     ask(spec) {
       if (pending) return Promise.reject(new VaultError("busy"));
       title.textContent = spec.title;
+      // `bound`: wiersz z wartością związaną kryptograficznie (odcisk, numer wywiadu) — wyróżniony.
+      // `untrusted`: wiersz z etykietą od panelu — w jednej linii (CSS nowrap + ellipsis), więc po
+      // zawinięciu nie udaje osobnego wiersza, np. odcisku (automatyczny przegląd bezpieczeństwa M-2).
+      const bound = new Set(spec.bound ?? []);
+      const untrusted = new Set(spec.untrusted ?? []);
       lines.replaceChildren(
-        ...spec.lines.map((text) => {
+        ...spec.lines.map((text, i) => {
           const p = doc.createElement("p");
           p.textContent = text;
+          p.className = bound.has(i) ? "bound" : untrusted.has(i) ? "untrusted" : "";
           return p;
         }),
       );

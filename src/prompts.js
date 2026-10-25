@@ -21,7 +21,8 @@ export const PROMPTS = {
   registerKey: (n, displayName) => ({
     kind: "register_key",
     title: `Rejestracja klucza ${n} z 2`,
-    lines: [`Lekarz: ${displayName}`, n === 1 ? "Włóż pierwszy klucz sprzętowy (YubiKey)." : "Wyjmij pierwszy klucz i włóż drugi (zapasowy).", TOUCH],
+    untrusted: [0],
+    lines: [`Lekarz — nazwa z panelu (niezweryfikowana): ${displayName}`, n === 1 ? "Włóż pierwszy klucz sprzętowy (YubiKey)." : "Wyjmij pierwszy klucz i włóż drugi (zapasowy).", TOUCH],
     confirm: `Zarejestruj klucz ${n}`,
     cancel: "Anuluj",
   }),
@@ -58,6 +59,8 @@ export const PROMPTS = {
   createClinic: (label, clinicId) => ({
     kind: "create_clinic",
     title: "Nowy klucz kliniki",
+    bound: [],
+    untrusted: [0],
     lines: [
       `Klinika nr ${clinicId} — nazwa z panelu (niezweryfikowana): ${label}`,
       "Klucz prywatny kliniki powstaje w sejfie i nie opuszcza go w postaci jawnej.",
@@ -68,6 +71,8 @@ export const PROMPTS = {
   grantAccess: (label, fingerprint, recipientId) => ({
     kind: "grant_access",
     title: "Nadanie dostępu do kliniki",
+    bound: [0],
+    untrusted: [1],
     // Odcisk (liczony w sejfie) zawsze w pierwszym wierszu, przed nieuwierzytelnioną etykietą (M-2).
     lines: [
       `Odcisk klucza odbiorcy: ${fingerprint}`,
@@ -82,6 +87,8 @@ export const PROMPTS = {
   grantLease: ({ kind, interviewId, studyCode, sessionSeq, agentRunId }) => ({
     kind: "grant_lease",
     title: kind === "addendum" ? "Odblokowanie dopisku" : "Dzierżawa naprawcza",
+    bound: [0],
+    untrusted: [1],
     lines: [
       `Wywiad: ${interviewId}`,
       `Kod wywiadu z panelu: ${studyCode}`,
