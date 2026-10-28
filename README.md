@@ -53,7 +53,7 @@ wycofuje się je wpisem w `public/revoked.json` (sejf w unieważnionej wersji od
 4. PR → zielone `test` i `build` → podpisany tag na głowie PR-a: `git tag -s vX.Y.Z -m "vX.Y.Z"`,
    `git verify-tag vX.Y.Z`, `git push origin vX.Y.Z` — **przed** merge'em (build `main` z linkiem
    do niewydanej wersji pada).
-5. Merge **commitem scalającym** (`gh pr merge --merge`; ruleset `main` nie dopuszcza innych).
+5. Merge **commitem scalającym** (`gh pr merge --merge`).
    Deploy z `main` publikuje wszystkie wersje. Ponowny deploy: `gh workflow run CI --ref main`.
 6. Sprawdzenie: `curl -fsSI https://bobik-2.github.io/vX.Y.Z/` (200) i
    `curl -fsS https://bobik-2.github.io/revoked.json`.
@@ -62,12 +62,17 @@ wycofuje się je wpisem w `public/revoked.json` (sejf w unieważnionej wersji od
 
 ### Zabezpieczenia repo
 
-- Ruleset `main`: PR, wymagane checki `test` i `build`, podpisane commity, wyłącznie merge commitem,
-  bez usuwania i force-pusha. Squash i rebase są też wyłączone w ustawieniach repo — otagowany
-  commit musi zostać w historii `main`, inaczej każdy kolejny deploy pada na „tag spoza historii HEAD”.
-- Ruleset tagów `v*`: tworzenie, przesuwanie i usuwanie wyłącznie przez administratora repo
-  (bypass roli admin), podpisane tagi. Build i tak sprawdza tagi fail-closed (brak podpisu, sumy bez
-  taga → zablokowany deploy, nie publikacja).
+Stan docelowy ustawia `bash scripts/repo-rules.sh` (idempotentny, `gh` jako administrator repo):
+
+- ustawienia repo: wyłącznie merge commitem (squash i rebase wyłączone) — otagowany commit musi
+  zostać w historii `main`, inaczej każdy kolejny deploy pada na „tag spoza historii HEAD”;
+- ruleset `main`: PR, wymagane checki `test` i `build`, podpisane commity, bez usuwania i
+  force-pusha;
+- ruleset `tagi v*`: tworzenie, przesuwanie i usuwanie tagów wydań wyłącznie przez administratora
+  repo, podpisane tagi.
+
+Build i tak sprawdza tagi fail-closed (brak podpisu, sumy bez taga → zablokowany deploy, nie
+publikacja). Po zmianie nazwy joba w `.github/workflows/ci.yml` popraw listę checków w skrypcie.
 
 ### Rotacja klucza podpisującego
 
