@@ -24,6 +24,7 @@ describe("limit odszyfrowań (rozstrzygnięcie 1, V-5)", () => {
       MAX_AGE_MS: 8 * 60 * MIN,
       INTERACTION_TIMEOUT_MS: 120_000,
       OPEN_MAX_ITEMS: 1000,
+      MAX_CREDENTIALS: 10,
     });
     expect(Object.isFrozen(LIMITS)).toBe(true);
   });

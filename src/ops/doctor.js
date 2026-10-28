@@ -8,6 +8,7 @@ import { deriveKek, generateDoctorKey, unwrapDoctorKey, wrapDoctorKey } from "..
 import { importP256Public } from "../crypto/keys.js";
 import { VaultError } from "../errors.js";
 import { fingerprint } from "../fingerprint.js";
+import { LIMITS } from "../limits.js";
 import { PROMPTS } from "../prompts.js";
 import { bytes, label, list, posInt } from "../validate.js";
 import { evaluatePrf, registerCredential } from "../webauthn.js";
@@ -17,7 +18,7 @@ const PRF_SALT_LEN = 32;
 const userHandle = (doctorId) => utf8(`bobik-doctor-${doctorId}`);
 
 function parseCredentials(value) {
-  return list(value, { min: 1, max: 10 }, (c) => ({
+  return list(value, { min: 1, max: LIMITS.MAX_CREDENTIALS }, (c) => ({
     credentialId: bytes(c.credential_id, { min: 1, max: 1023 }),
     prfSalt: bytes(c.prf_salt, { min: PRF_SALT_LEN, max: PRF_SALT_LEN }),
     wrapped: bytes(c.wrapped_private, { min: 29, max: 1024 }),
@@ -126,6 +127,8 @@ export const addCredential = {
     const doctor = ctx.session.doctor;
     const spkiHex = await sha256Hex(spki);
     if (doctorId !== doctor.doctorId || spkiHex !== doctor.spkiHex) throw new VaultError("bad_args");
+    // Jedenasty wrap zablokowałby lekarzowi unlock (parseCredentials przyjmuje najwyżej 10).
+    if (credentials.length >= LIMITS.MAX_CREDENTIALS) throw new VaultError("max_credentials");
     await ctx.ask(PROMPTS.addExisting());
     // F3: chwilowa kopia eksportowalna wyłącznie do wrapKey dla nowego klucza, potem porzucona.
     const exportable = await unwrapWith(ctx, { doctorId, spkiHex, credentials }, { extractable: true });

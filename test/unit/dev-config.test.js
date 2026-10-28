@@ -16,9 +16,9 @@ function load(text) {
 }
 
 describe("originy panelu: produkcja i podmiana dev/E2E (rozstrzygnięcie 11, P9, P12)", () => {
-  it("VERSION 0.2.0; lista produkcyjna bez zmian względem 0.1.0 (odstępstwo P12)", () => {
-    expect(VERSION).toBe("0.2.0");
-    expect(ALLOWED_PARENT_ORIGINS).toEqual(["http://127.0.0.1:8000"]);
+  it("VERSION 0.3.0; lista produkcyjna = panel bobik-2 pod https://bobik.iplweb.pl", () => {
+    expect(VERSION).toBe("0.3.0");
+    expect(ALLOWED_PARENT_ORIGINS).toEqual(["https://bobik.iplweb.pl"]);
     expect(Object.isFrozen(ALLOWED_PARENT_ORIGINS)).toBe(true);
   });
 

@@ -11,6 +11,8 @@ export const LIMITS = Object.freeze({
   MAX_AGE_MS: 8 * 60 * 60_000,
   INTERACTION_TIMEOUT_MS: 120_000,
   OPEN_MAX_ITEMS: 1000,
+  // Poświadczenia (YubiKeye) jednego lekarza; serwer bobik-2 ma ten sam limit (409 max_credentials).
+  MAX_CREDENTIALS: 10,
 });
 
 export function createLimiter(now) {

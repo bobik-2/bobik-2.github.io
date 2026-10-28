@@ -60,7 +60,7 @@ wyjętego klucza → `NotAllowedError`.
   `prf.enabled = true` **i** `prf.results.first`, identyczne z późniejszym
   `get()` z tą samą solą. Inna sól → inny wynik.
 - To **nie przesądza** o YubiKeyu: wynik PRF przy rejestracji wymaga
-  `hmac-secret-mc` (CTAP 2.2); YubiKey 5 z firmware < 5.7 zwróci
+  `hmac-secret-mc` (CTAP 2.2) — według Yubico dopiero firmware **5.8+**; YubiKey 5 z firmware < 5.8 zwróci
   prawdopodobnie tylko `enabled: true`. Projekt rejestracji musi obsłużyć
   oba przypadki: brak `results` przy `create()` → od razu `get()` (drugie
   dotknięcie).
