@@ -178,6 +178,19 @@ describe("add_credential (F3, B-D5)", () => {
     expect(await t.call("add_credential", { doctor_id: 18, public_key_der: reg.public_key_der, credentials: reg.credentials })).toMatchObject({ ok: false, error: "bad_args" });
   });
 
+  it("lekarz ma już 10 poświadczeń -> max_credentials, bez pytania i bez WebAuthn", async () => {
+    const t = makeVault();
+    const reg = await registerDoctor(t);
+    await unlockDoctor(t, reg);
+    const extra = Array.from({ length: 8 }, (_, i) => ({ credential_id: toB64url(new Uint8Array([200, i])), prf_salt: SALT, wrapped_private: WRAP }));
+    const prompts = t.ui.prompts.length;
+    const creates = t.auth.calls.create.length;
+    const args = { doctor_id: 17, public_key_der: reg.public_key_der, credentials: [...reg.credentials, ...extra] };
+    expect(await t.call("add_credential", args)).toMatchObject({ ok: false, error: "max_credentials" });
+    expect(t.ui.prompts).toHaveLength(prompts);
+    expect(t.auth.calls.create).toHaveLength(creates);
+  });
+
   it("w stanie locked -> locked (przed walidacją argumentów)", async () => {
     expect(await makeVault().call("add_credential", {})).toMatchObject({ ok: false, error: "locked" });
   });

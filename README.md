@@ -11,19 +11,14 @@ Kontrakt (formaty F1–F8, protokół, limity, kody błędów): spec B w repo bo
 `docs/superpowers/specs/2026-10-24-szyfrowanie-b-sejf-design.md`. Plan tej wersji:
 `docs/plans/2026-10-25-b1-protokol-krypto.md`.
 
-## TODO przed użyciem produkcyjnym
+## Hosty panelu
 
-`ALLOWED_PARENT_ORIGINS` w `src/config.js` zawiera dziś wyłącznie origin atrapy panelu E2E
-(`http://127.0.0.1:8000`) — hosty produkcyjne panelu bobik-2 nie są ustalone (spec B, „Nie
-ustalono"). Przed pierwszym użyciem klinicznym dopisz je (każda klinika ma własne `Site.domain`)
-i wydaj nową wersję. To jedyne odłożenie w v0.2.0; do tego czasu w bobik-2 obowiązuje
-`KEYVAULT_BROWSER_CLINICS_ENABLED=False`.
-
-**Wydanie z hostami produkcyjnymi: w tym samym PR-ze dopisz `0.2.0` do `public/revoked.json`.**
-Wydane wersje są niezmienne i żyją równolegle, a v0.2.0 na stałe uznaje za panel
-`http://127.0.0.1:8000` — po wydaniu produkcyjnym dalej działałaby pod produkcyjnym RP ID dla
-dowolnego procesu na tym porcie u lekarza (`runserver`, narzędzie deweloperskie, malware). Nowa
-wersja ma wyłącznie originy `https://`. Pilnuje tego `test/unit/release.test.js`.
+`ALLOWED_PARENT_ORIGINS` w `src/config.js` to od v0.3.0 wyłącznie `https://bobik.iplweb.pl`.
+Sejf odpowiada tylko panelowi pod tym originem; panel pod innym hostem (np. domena kliniki) dostaje
+`vault_unreachable`, dopóki nowa wersja nie dopisze tego hosta. Wersja z hostem produkcyjnym ma
+wyłącznie originy `https://`, a wersje z loopbackiem (0.1.0, 0.2.0) są unieważnione — inaczej
+dowolny proces na `127.0.0.1:8000` u lekarza rozmawiałby z sejfem pod produkcyjnym RP ID. Pilnuje
+tego `test/unit/release.test.js`. Lokalnie listę podmienia `scripts/serve.mjs` (sekcja „Dev i E2E”).
 
 ## Układ
 
@@ -47,29 +42,61 @@ wycofuje się je wpisem w `public/revoked.json` (sejf w unieważnionej wersji od
 `releases/allowed_signers`, tag nie leży w historii `HEAD`, sumy nie zgadzają się z
 `releases/<X.Y.Z>.sha256`, albo `src/` wydanej wersji zmieniono bez podbicia `VERSION`.
 
-Nowa wersja:
+### Nowa wersja
 
-1. Podbij `VERSION` w `src/config.js` i `npm version X.Y.Z --no-git-tag-version`.
-2. Gdy `src/` jest gotowe i zacommitowane: `node scripts/release-sums.mjs HEAD > releases/X.Y.Z.sha256`, commit.
-3. PR → zielone CI → podpisany tag na głowie PR-a: `git tag -s vX.Y.Z -m "…"`, `git push origin vX.Y.Z`.
-4. Merge **commitem scalającym** (nie squash — tag musi zostać w historii `main`). Deploy z `main`
-   publikuje wszystkie wersje. Ponowny deploy: `gh workflow run CI --ref main`.
-5. W bobik-2: commit zmieniający domyślne `KEYVAULT_VAULT_VERSION` w `settings.py`.
+1. Gałąź z `main`. Podbij `VERSION` w `src/config.js` i `npm version X.Y.Z --no-git-tag-version`
+   (testy pilnują zgodności `package.json`, `package-lock.json` i linku w `public/index.html`).
+   Nowy host panelu: dopisz go do bloku `// <parent-origins>`.
+2. Unieważnienie starszej wersji: dopisz ją do `public/revoked.json` w tym samym PR-ze.
+3. `npx vitest run` i `npx playwright test`. Gdy `src/` jest gotowe i zacommitowane:
+   `node scripts/release-sums.mjs HEAD > releases/X.Y.Z.sha256`, commit.
+4. PR → zielone `test` i `build` → podpisany tag na głowie PR-a: `git tag -s vX.Y.Z -m "vX.Y.Z"`,
+   `git verify-tag vX.Y.Z`, `git push origin vX.Y.Z` — **przed** merge'em (build `main` z linkiem
+   do niewydanej wersji pada).
+5. Merge **commitem scalającym** (`gh pr merge --merge`; ruleset `main` nie dopuszcza innych).
+   Deploy z `main` publikuje wszystkie wersje. Ponowny deploy: `gh workflow run CI --ref main`.
+6. Sprawdzenie: `curl -fsSI https://bobik-2.github.io/vX.Y.Z/` (200) i
+   `curl -fsS https://bobik-2.github.io/revoked.json`.
+7. W bobik-2: commit zmieniający domyślne `KEYVAULT_VAULT_VERSION` w `settings.py` (job CI
+   `e2e-vault` klonuje sejf w tagu `v<wersja>`).
 
-Uwagi operacyjne:
+### Zabezpieczenia repo
 
-- **Merge wyłącznie commitem scalającym.** Ruleset `main` dopuszcza też squash i rebase — nie używaj
-  ich: otagowany commit wypada z historii `main` i każdy kolejny deploy pada na „tag spoza historii
-  HEAD”. Tag wypychaj **przed** merge'em (build `main` z linkiem do niewydanej wersji w
-  `public/index.html` pada).
-- **Tagi `v*` nie mają rulesetu** (usunięcie, nadpisanie, tworzenie przez kogokolwiek z prawem
-  zapisu). Build to łapie fail-closed (brak podpisu, sumy bez taga), skutkiem jest zablokowany
-  deploy, nie publikacja.
-- **Rotacja klucza podpisującego — procedura do ustalenia.** Wpis w `releases/allowed_signers` nie
-  ma `valid-before`/`valid-after`; usunięcie klucza unieważnia podpisy wszystkich wydanych tagów
-  i build pada na pierwszym z nich. Kierunek: nowy klucz w `allowed_signers`, `valid-before` na
-  starym, ponowne podpisanie istniejących wersji nowym kluczem pod tymi samymi nazwami (nowy obiekt
-  taga na ten sam commit, sumy bez zmian).
+- Ruleset `main`: PR, wymagane checki `test` i `build`, podpisane commity, wyłącznie merge commitem,
+  bez usuwania i force-pusha. Squash i rebase są też wyłączone w ustawieniach repo — otagowany
+  commit musi zostać w historii `main`, inaczej każdy kolejny deploy pada na „tag spoza historii HEAD”.
+- Ruleset tagów `v*`: tworzenie, przesuwanie i usuwanie wyłącznie przez administratora repo
+  (bypass roli admin), podpisane tagi. Build i tak sprawdza tagi fail-closed (brak podpisu, sumy bez
+  taga → zablokowany deploy, nie publikacja).
+
+### Rotacja klucza podpisującego
+
+`releases/allowed_signers` to format `ssh-keygen` (ALLOWED SIGNERS). `git verify-tag` sprawdza
+`valid-after`/`valid-before` względem daty taga.
+
+**Planowa wymiana** (stary klucz nieskompromitowany):
+
+1. Nowy klucz SSH (najlepiej sprzętowy: `ssh-keygen -t ed25519-sk`), dodany w GitHubie jako
+   *signing key*; `git config user.signingkey <nowy>.pub`.
+2. W `releases/allowed_signers`: staremu wpisowi dopisz `valid-before="RRRRMMDD"` (dzień wymiany),
+   nowy dodaj z `namespaces="git",valid-after="RRRRMMDD"`. PR, merge commitem.
+3. Stare tagi zostają ważne (podpisane przed `valid-before`); nowe podpisujesz nowym kluczem.
+   Kontrola: `node scripts/build.mjs` lokalnie.
+
+**Kompromitacja klucza** (data taga da się sfałszować, więc `valid-before` nie wystarcza):
+
+1. Usuń stary klucz z GitHuba i z `releases/allowed_signers`, dodaj nowy (jak wyżej, bez dat).
+2. Przejrzyj `git tag -l 'v*'` i `git log` od podejrzanej daty; każdą nieuprawnioną wersję dopisz do
+   `public/revoked.json`.
+3. Podpisz ponownie każdy wydany tag nowym kluczem, na ten sam commit (sumy w
+   `releases/*.sha256` się nie zmieniają):
+   `git tag -f -s vX.Y.Z 'vX.Y.Z^{commit}' -m vX.Y.Z` i `git push -f origin vX.Y.Z` (wymaga
+   bypassu admina w rulesecie tagów).
+4. PR ze zmianą `allowed_signers` i `revoked.json`, merge, sprawdzenie deployu jak w kroku 6
+   wydania.
+
+### Uwagi
+
 - `public/` idzie do `dist/` z `git archive HEAD public` (nie z dysku): wyłącznie `index.html`
   (bez `<script`) i `revoked.json` (`{"revoked": ["X.Y.Z", …]}`); build pada też, gdy każda
   zbudowana wersja jest unieważniona. Artefakt Pages buduje osobny job `build` bez `npm ci`.
@@ -88,7 +115,7 @@ listę originów panelu w `src/config.js` na `http://127.0.0.1:8000` (atrapa) i
 `live_server` w E2E bobik-2). Przykład dla dev bobik-2 (`KEYVAULT_VAULT_ORIGIN=http://localhost:8001`):
 
 ```bash
-node scripts/serve.mjs 8001 localhost /=public /v0.2.0=src --dev-config
+node scripts/serve.mjs 8001 localhost /=public /v0.3.0=src --dev-config
 ```
 
 Podmiana nigdy nie trafia do `dist/`.
@@ -105,8 +132,8 @@ we wszystkich trzech silnikach). Bez `ancestorOrigins` (starsze przeglądarki) r
 - `open`: element `sealed` wymaga `interview_id` (dokleja go panel z `ciphertexts.interview`), pola
   z `blob: null` panel pomija; nowe wywiady w paczkach ≤ 10 (limit okna 5 min).
 - `unlock` przyjmuje `credentials` z `GET state/` wprost (nadmiarowe pola ignorowane), najwyżej
-  **10 poświadczeń** na lekarza (więcej → `bad_args`, lekarz nie odblokuje sejfu). Serwer musi
-  ograniczyć `add_credential` do 10 (B3).
+  **10 poświadczeń** na lekarza (więcej → `bad_args`). `add_credential` przy 10 poświadczeniach
+  zwraca `max_credentials` przed pytaniem lekarza; serwer ma ten sam limit (`409 max_credentials`).
 - Po odblokowaniu sejf pokazuje „Lekarz nr N · odcisk Twojego klucza: …” — numer i odcisk, które
   odbiorca grantu podaje nadającemu.
 - Operacje interaktywne: limit 120 s po stronie panelu i sejfu; druga naraz → `busy`.
@@ -145,10 +172,8 @@ we wszystkich trzech silnikach). Bez `ancestorOrigins` (starsze przeglądarki) r
 
 ## Testy ręczne (sprzęt)
 
-YubiKey 5 na Windows w Chrome, Edge i Firefox, w cross-origin iframe: rejestracja z PIN-em (klucz
-z firmware ≥ 5.8 — jedno dotknięcie; 5.2–5.7 — drugie dotknięcie), odblokowanie jednym z dwóch
-kluczy, blokada Safari. Wynik Firefoksa rozstrzyga, czy rejestracja zostaje w iframe'ie (spec B,
-rozstrzygnięcie 15).
+Procedura (lokalnie i na produkcji, YubiKey 5 w Chrome, Edge i Firefox, tabela wyników) jest w
+instrukcji sejfu w repo bobik-2: `docs/runbooks/sejf-kluczy.md`.
 
 ## Hosting
 

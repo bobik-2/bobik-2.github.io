@@ -19,10 +19,6 @@ it("strona główna originu wskazuje bieżącą wersję demo", () => {
   expect(read("public/index.html")).toContain(`href="v${VERSION}/demo.html"`);
 });
 
-it("README: jedyne odłożenie — hosty produkcyjne panelu (P12)", () => {
-  expect(read("README.md")).toContain("TODO przed użyciem produkcyjnym");
-});
-
 // Końcowy przegląd, I-3: v0.2.0 ufa atrapie panelu http://127.0.0.1:8000. Wydana wersja żyje dalej, więc
 // wydanie z hostami produkcyjnymi musi unieważnić każdą wcześniejszą wersję z loopbackiem — inaczej
 // dowolny proces na 127.0.0.1:8000 u lekarza dalej rozmawia z sejfem pod produkcyjnym RP ID.
@@ -46,8 +42,7 @@ it("I-3: reguła — wersja z hostem produkcyjnym tylko z https:// i z unieważn
   expect(productionViolations(["https://panel.example"], ["0.1.0", "0.2.0"])).toEqual([]);
 });
 
-it("I-3: bieżąca konfiguracja spełnia regułę; README każe unieważnić 0.2.0", () => {
+it("I-3: bieżąca konfiguracja spełnia regułę", () => {
   const { revoked } = JSON.parse(read("public/revoked.json"));
   expect(productionViolations(ALLOWED_PARENT_ORIGINS, revoked)).toEqual([]);
-  expect(read("README.md")).toContain("dopisz `0.2.0` do `public/revoked.json`");
 });
