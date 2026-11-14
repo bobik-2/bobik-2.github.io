@@ -13,7 +13,7 @@
     "vectors": "node scripts/gen-vectors.mjs"
   },
   "devDependencies": {
-    "@hpke/common": "1.10.1",
+    "@hpke/common": "1.13.0",
     "@hpke/core": "1.9.0",
     "@playwright/test": "1.64.1",
     "vitest": "5.0.5"
